@@ -179,4 +179,240 @@
     100% { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
   }
   @keyframes float4 {
-    0%   { transform: translateZ(0) translateY(0); box-sh
+    0%   { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
+    50%  { transform: translateZ(9px) translateY(-5px); box-shadow: 0 19px 29px rgba(0,120,215,0.37); }
+    100% { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
+  }
+
+  /* Fluent风格按钮 */
+  #btn {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    padding: 10px 24px;
+    font-weight: 600;
+    font-size: 16px;
+    color: #0078D7;
+    background: rgba(255 255 255 / 0.1);
+    border: none;
+    border-radius: 8px;
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.1),
+      0 2px 4px 0 rgba(0,0,0,0.15);
+    cursor: pointer;
+    user-select: none;
+    transition:
+      background-color 0.25s ease,
+      box-shadow 0.25s ease,
+      color 0.25s ease;
+    backdrop-filter: blur(12px);
+    z-index: 10;
+  }
+  #btn:hover {
+    background: rgba(0, 120, 215 / 0.15);
+    color: #ffffff;
+    box-shadow:
+      0 0 8px 2px rgba(0,120,215,0.6);
+  }
+
+  /* 禁止拖动图片导致桌面不便 */
+  img {
+    -webkit-user-drag: none;
+    user-drag: none;
+  }
+</style>
+</head>
+<body>
+  <div id="container" role="main" aria-label="桌面壁纸展示区">
+    <!-- Windows图标 默认显示，图片加载前 -->
+    <div id="windows-icon" aria-hidden="true" role="img" aria-label="Windows 图标">
+      <div class="win-rect win-rect1"></div>
+      <div class="win-rect win-rect2"></div>
+      <div class="win-rect win-rect3"></div>
+      <div class="win-rect win-rect4"></div>
+    </div>
+
+    <!-- 背景模糊放大图 -->
+    <img id="bg-blur" aria-hidden="true" alt="" />
+
+    <div id="image-wrapper">
+      <!-- 主图片 -->
+      <img id="img" alt="随机桌面壁纸" />
+      <!-- 进度条 -->
+      <div id="progress-container" aria-hidden="true">
+        <div id="progress-bar"></div>
+      </div>
+      <!-- 错误提示 -->
+      <div id="progress-text" role="alert"></div>
+    </div>
+
+    <!-- 刷新按钮 -->
+    <button id="btn" aria-label="刷新壁纸" type="button">刷新壁纸</button>
+  </div>
+
+<script>
+  /**
+   * 桌面壁纸引擎主逻辑
+   * 需求：
+   * - 默认不加载图片，显示Windows图标
+   * - 点击“刷新壁纸”按钮后加载图片及背景模糊
+   */
+
+  // DOM 元素
+  const windowsIcon = document.getElementById('windows-icon');
+  const bgBlur = document.getElementById('bg-blur');
+  const img = document.getElementById('img');
+  const progressContainer = document.getElementById('progress-container');
+  const progressBar = document.getElementById('progress-bar');
+  const progressText = document.getElementById('progress-text');
+  const btnRefresh = document.getElementById('btn');
+
+  // 当前图片URL变量，刷新后更新
+  let currentImageUrl = '';
+
+  // 随机壁纸API基础地址（可替换为你实际需求）
+  const baseImageURL = 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=2';
+
+  /**
+   * 计算图片边缘平均颜色
+   * @param {HTMLImageElement} image
+   * @param {number} edgeSize
+   * @returns {Promise<[number,number,number]>}
+   */
+  function getAverageEdgeColor(image, edgeSize = 30) {
+    return new Promise(resolve => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(image, 0, 0);
+
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+
+        let rSum = 0, gSum = 0, bSum = 0, count = 0;
+        const w = canvas.width, h = canvas.height;
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            if (y < edgeSize || y >= h - edgeSize || x < edgeSize || x >= w - edgeSize) {
+              const idx = (y * w + x) * 4;
+              if (data[idx + 3] > 128) {
+                rSum += data[idx];
+                gSum += data[idx + 1];
+                bSum += data[idx + 2];
+                count++;
+              }
+            }
+          }
+        }
+        if (count === 0) return resolve([0, 0, 0]);
+        resolve([
+          Math.round(rSum / count),
+          Math.round(gSum / count),
+          Math.round(bSum / count)
+        ]);
+      } catch {
+        resolve([0, 0, 0]);
+      }
+    });
+  }
+
+  /**
+   * 格式化RGB数组为CSS颜色字符串
+   * @param {number[]} rgb
+   */
+  function rgbToCss(rgb) {
+    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+  }
+
+  /**
+   * 伪进度条加载并监听图片事件
+   */
+  function simulateProgressLoading(imgElement, progressBarElement, progressContainerElement, onLoad, onError) {
+    let progress = 0;
+    progressBarElement.style.width = '0%';
+    progressContainerElement.style.display = 'block';
+    progressText.style.display = 'none';
+
+    const timer = setInterval(() => {
+      if (progress < 90) {
+        progress += 10;
+        progressBarElement.style.width = progress + '%';
+      }
+    }, 200);
+
+    const cleanup = () => {
+      clearInterval(timer);
+      imgElement.onload = null;
+      imgElement.onerror = null;
+    };
+
+    imgElement.onload = () => {
+      cleanup();
+      progressBarElement.style.width = '100%';
+      setTimeout(() => {
+        progressContainerElement.style.display = 'none';
+      }, 300);
+      progressText.style.display = 'none';
+      imgElement.style.opacity = '1';
+      onLoad && onLoad();
+    };
+
+    imgElement.onerror = () => {
+      cleanup();
+      progressContainerElement.style.display = 'none';
+      progressText.textContent = '加载失败，请刷新重试';
+      progressText.style.display = 'block';
+      imgElement.style.opacity = '0';
+      onError && onError();
+    };
+  }
+
+  /**
+   * 加载壁纸
+   */
+  async function refreshImage() {
+    currentImageUrl = baseImageURL + '&_ts=' + Date.now();
+
+    // 开始加载时隐藏windows图标，显示图片和背景模糊
+    windowsIcon.style.display = 'none';
+    img.style.display = 'block';
+    bgBlur.style.display = 'block';
+
+    progressText.style.display = 'none';
+    img.style.opacity = '0';
+
+    simulateProgressLoading(img, progressBar, progressContainer, async () => {
+      const avgColor = await getAverageEdgeColor(img, 40);
+      const bgCss = rgbToCss(avgColor);
+      document.body.style.backgroundColor = bgCss;
+
+      bgBlur.src = img.src;
+      bgBlur.onload = () => {
+        bgBlur.style.opacity = '0.3';
+      };
+    }, () => {
+      // 加载失败，恢复windows图标并隐藏图片及背景模糊，背景恢复白色
+      windowsIcon.style.display = 'flex';
+      img.style.display = 'none';
+      bgBlur.style.opacity = '0';
+      bgBlur.style.display = 'none';
+      bgBlur.src = '';
+      document.body.style.backgroundColor = '#fff';
+    });
+
+    img.src = currentImageUrl;
+  }
+
+  // 绑定按钮事件，等待DOM加载完成
+  window.addEventListener('DOMContentLoaded', () => {
+    btnRefresh.addEventListener('click', refreshImage);
+    // 默认不加载图片，保持Windows图标显示
+    // body背景保持白色
+    document.body.style.backgroundColor = '#fff';
+  });
+</script>
+</body>
+</html>
