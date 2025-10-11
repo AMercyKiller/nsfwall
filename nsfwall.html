@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no" />
+<title>NSFWall – Not Safe for Wallpaper</title>
+<style>
+  /* 
+  ============== Fluent 设计风格基础样式 ==============
+  微软 Fluent 设计风格常使用柔和阴影与透明感，使用 Segoe UI 字体。
+  */
+
+  /* 引入Segoe UI，fallback为系统默认字体 */
+  body, button {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  /* 让html和body撑满屏幕，取消默认边距 */
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #fff; /* 改为白色背景 */
+    overflow: hidden; /* 禁止滚动，模拟桌面效果 */
+    user-select: none; /* 禁止文本选中 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* 容器，撑满全屏 */
+  #container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: transparent; /* 具体颜色由js控制 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /*
+    模糊背景层 
+    使用加载图片的大图并高斯模糊，coverage cover保持比例填充整个屏幕
+    低透明度图层，增强沉浸感
+  */
+  #bg-blur {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    filter: blur(24px);
+    transform: scale(1.1); /* 放大一点避免边缘空白 */
+    opacity: 0.3;
+    z-index: 0;
+    pointer-events: none;
+    user-select: none;
+    transition: opacity 0.5s ease;
+    display: none;
+  }
+
+  /*
+    主图片区域，中间展示壁纸
+  */
+  #image-wrapper {
+    position: relative;
+    z-index: 2;
+    height: 100vh;
+    max-width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* 主展示图片 */
+  #img {
+    max-width: 100vw;
+    max-height: 100vh;
+    object-fit: contain;
+    border-radius: 8px; /* Fluent里推荐较圆润的边角 */
+    box-shadow:
+      0 8px 32px 0 rgba(0,0,0,0.37),
+      0 2px 4px 0 rgba(0,0,0,0.2);
+    user-select: none;
+    pointer-events: auto; /* 恢复鼠标响应 */
+    transition: opacity 0.35s ease;
+    background-color: transparent;
+    display: none; /* 初始隐藏 */
+  }
+
+  /* 进度条容器 */
+  #progress-container {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 320px;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255 255 255 / 0.2);
+    box-shadow:
+      inset 0 0 8px rgba(255 255 255 / 0.6);
+    overflow: hidden;
+    user-select: none;
+    display: none; /* 初始隐藏 */
+  }
+
+  /* 进度条 */
+  #progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #0078D7, #00BCF2);
+    border-radius: 3px 0 0 3px;
+    transition: width 0.15s ease-out;
+  }
+
+  /* 加载失败提示文本 */
+  #progress-text {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #F1707A; /* Fluent 红色警告色 */
+    font-weight: 600;
+    font-size: 14px;
+    user-select: none;
+    display: none;
+    z-index: 10;
+  }
+
+  /* Windows图标容器，置中显示，四方块构成 */
+  #windows-icon {
+    width: 160px;
+    height: 160px;
+    position: relative;
+    z-index: 2;
+    perspective: 800px;
+  }
+
+  /* Windows 标志的四个方块，带阴影和浮动动画 */
+  .win-rect {
+    width: 70px;
+    height: 70px;
+    background: #0078D7; /* Windows 蓝 */
+    border-radius: 6px;
+    position: absolute;
+    box-shadow: 
+      0 12px 18px rgba(0, 120, 215, 0.25), /* 外向阴影营造淡淡“散发”的立体效果 */
+      inset 0 2px 6px rgba(255 255 255 / 0.3);
+    transform-style: preserve-3d;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    will-change: transform, box-shadow;
+  }
+
+  /* 四个方块定位 */
+  .win-rect1 { top: 0; left: 0; animation: float1 4s infinite ease-in-out alternate; }
+  .win-rect2 { top: 0; right: 0; animation: float2 4.5s infinite ease-in-out alternate; animation-delay: 0.15s; }
+  .win-rect3 { bottom: 0; left: 0; animation: float3 5s infinite ease-in-out alternate; animation-delay: 0.3s; }
+  .win-rect4 { bottom: 0; right: 0; animation: float4 4.7s infinite ease-in-out alternate; animation-delay: 0.45s; }
+
+  /* 小幅度浮动动画关键帧 */
+  @keyframes float1 {
+    0%   { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
+    50%  { transform: translateZ(8px) translateY(-6px); box-shadow: 0 18px 28px rgba(0,120,215,0.35); }
+    100% { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
+  }
+  @keyframes float2 {
+    0%   { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
+    50%  { transform: translateZ(5px) translateY(-4px); box-shadow: 0 15px 22px rgba(0,120,215,0.3); }
+    100% { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
+  }
+  @keyframes float3 {
+    0%   { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
+    50%  { transform: translateZ(7px) translateY(-7px); box-shadow: 0 17px 26px rgba(0,120,215,0.33); }
+    100% { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
+  }
+  @keyframes float4 {
+    0%   { transform: translateZ(0) translateY(0); box-sh
