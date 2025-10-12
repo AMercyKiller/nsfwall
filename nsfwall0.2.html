@@ -3,16 +3,20 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no" />
-<title>NSFWall – Not Safe for Wallpaper</title>
+<title>NSFWall – Not Safe for Wallpaper (0.3 Enhanced with Stats & Share)</title>
 <style>
+  /* ==== 导入新字体 === */
+  @import url("https://fontsapi.zeoseven.com/83/main/result.css");
+
+  /* ==== Fluent Design 基础样式 ==== */
   body, button {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Chill Round Gothic", 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: normal;
   }
 
   html, body {
     height: 100%;
-    margin: 0;
-    padding: 0;
+    margin: 0; padding: 0;
     background-color: #fff;
     overflow: hidden;
     user-select: none;
@@ -20,11 +24,9 @@
     justify-content: center;
     align-items: center;
   }
-
   #container {
     position: relative;
-    width: 100vw;
-    height: 100vh;
+    width: 100vw; height: 100vh;
     overflow: hidden;
     background-color: transparent;
     display: flex;
@@ -32,11 +34,11 @@
     align-items: center;
   }
 
+  /* ===== 背景模糊 ===== */
   #bg-blur {
     position: fixed;
     top: 0; left: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100vw; height: 100vh;
     object-fit: cover;
     filter: blur(24px);
     transform: scale(1.1);
@@ -48,24 +50,23 @@
     display: none;
   }
 
+  /* ===== 图片展示区 ===== */
   #image-wrapper {
     position: relative;
     z-index: 2;
-    height: 100vh;
-    max-width: 100vw;
+    height: 100vh; max-width: 100vw;
     display: flex;
     justify-content: center;
     align-items: center;
   }
-
   #img {
     max-width: 100vw;
     max-height: 100vh;
     object-fit: contain;
     border-radius: 8px;
     box-shadow:
-      0 8px 32px 0 rgba(0,0,0,0.37),
-      0 2px 4px 0 rgba(0,0,0,0.2);
+      0 8px 32px rgba(0,0,0,0.37),
+      0 2px 4px rgba(0,0,0,0.2);
     user-select: none;
     pointer-events: auto;
     transition: opacity 0.35s ease;
@@ -73,34 +74,28 @@
     display: none;
   }
 
+  /* ===== 进度条 ===== */
   #progress-container {
     position: absolute;
-    bottom: 16px;
-    left: 50%;
+    top: 16px; left: 50%;
     transform: translateX(-50%);
-    width: 320px;
-    height: 6px;
+    width: 320px; height: 6px;
     border-radius: 3px;
     background: rgba(255 255 255 / 0.2);
-    box-shadow:
-      inset 0 0 8px rgba(255 255 255 / 0.6);
+    box-shadow: inset 0 0 8px rgba(255 255 255 / 0.6);
     overflow: hidden;
     user-select: none;
     display: none;
   }
-
   #progress-bar {
-    width: 0%;
-    height: 100%;
-    background: linear-gradient(90deg, #0078D7, #00BCF2);
+    width: 0%; height: 100%;
+    background: linear-gradient(90deg,#0078D7,#00BCF2);
     border-radius: 3px 0 0 3px;
     transition: width 0.15s ease-out;
   }
-
   #progress-text {
     position: absolute;
-    bottom: 40px;
-    left: 50%;
+    bottom: 40px; left: 50%;
     transform: translateX(-50%);
     color: #F1707A;
     font-weight: 600;
@@ -110,59 +105,70 @@
     z-index: 10;
   }
 
+  /* ==== 主页面 - 图片源方块网格 ==== */
   #windows-icon {
-    width: 160px;
-    height: 160px;
     position: relative;
     z-index: 2;
-    perspective: 800px;
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(4, 70px);
+    grid-gap: 16px;
+    padding: 16px;
     justify-content: center;
     align-items: center;
+    perspective: 800px;
+    user-select: none;
   }
-
-  .win-rect {
-    width: 70px;
-    height: 70px;
-    background: #0078D7;
-    border-radius: 6px;
-    position: absolute;
+  /* 方块基础样式 */
+  .src-block {
+    width: 70px; height: 70px;
+    border-radius: 8px;
     box-shadow:
-      0 12px 18px rgba(0, 120, 215, 0.25),
+      0 12px 18px rgba(0,0,0,0.15),
       inset 0 2px 6px rgba(255 255 255 / 0.3);
+    color: white;
+    font-family: 'Segoe UI Mono', Consolas, monospace;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    cursor: pointer;
+    text-align: center;
+    user-select: none;
+    transition:
+      box-shadow 0.3s ease,
+      transform 0.3s ease;
     transform-style: preserve-3d;
-    animation-timing-function: ease-in-out;
-    animation-iteration-count: infinite;
-    animation-direction: alternate;
-    will-change: transform, box-shadow;
+    position: relative;
+  }
+  @keyframes floatBlock {
+    0%, 100% {
+      transform: translateZ(0) translateY(0); 
+      box-shadow: 0 12px 18px rgba(0,0,0,0.15), inset 0 2px 6px rgba(255 255 255 / 0.3);
+    }
+    50% {
+      transform: translateZ(8px) translateY(-7px);
+      box-shadow: 0 22px 28px rgba(0,0,0,0.25), inset 0 6px 12px rgba(255 255 255 / 0.5);
+    }
+  }
+  .src-block:nth-child(1) { animation: floatBlock 4.2s ease-in-out infinite alternate; animation-delay: 0s; }
+  .src-block:nth-child(2) { animation: floatBlock 4.7s ease-in-out infinite alternate; animation-delay: 0.15s; }
+  .src-block:nth-child(3) { animation: floatBlock 5.1s ease-in-out infinite alternate; animation-delay: 0.3s; }
+  .src-block:nth-child(4) { animation: floatBlock 4.5s ease-in-out infinite alternate; animation-delay: 0.4s; }
+  .src-block:nth-child(5) { animation: floatBlock 5s ease-in-out infinite alternate; animation-delay: 0.55s; }
+  .src-block:nth-child(6) { animation: floatBlock 4.3s ease-in-out infinite alternate; animation-delay: 0.7s; }
+  .src-block:nth-child(7) { animation: floatBlock 4.8s ease-in-out infinite alternate; animation-delay: 0.85s; }
+  .src-block:nth-child(8) { animation: floatBlock 4.8s ease-in-out infinite alternate; animation-delay: 0.9s; }
+
+  /* 鼠标hover放大10% */
+  .src-block:hover, .src-block:focus-visible {
+    box-shadow:
+      0 24px 32px rgba(0,0,0,0.3),
+      inset 0 5px 10px rgba(255 255 255 / 0.4);
+    transform: translateY(-6px) translateZ(12px) scale(1.1);
+    outline: none;
   }
 
-  .win-rect1 { top: 0; left: 0; animation: float1 4s infinite ease-in-out alternate; }
-  .win-rect2 { top: 0; right: 0; animation: float2 4.5s infinite ease-in-out alternate; animation-delay: 0.15s; }
-  .win-rect3 { bottom: 0; left: 0; animation: float3 5s infinite ease-in-out alternate; animation-delay: 0.3s; }
-  .win-rect4 { bottom: 0; right: 0; animation: float4 4.7s infinite ease-in-out alternate; animation-delay: 0.45s; }
-
-  @keyframes float1 {
-    0%   { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
-    50%  { transform: translateZ(8px) translateY(-6px); box-shadow: 0 18px 28px rgba(0,120,215,0.35); }
-    100% { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
-  }
-  @keyframes float2 {
-    0%   { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
-    50%  { transform: translateZ(5px) translateY(-4px); box-shadow: 0 15px 22px rgba(0,120,215,0.3); }
-    100% { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
-  }
-  @keyframes float3 {
-    0%   { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
-    50%  { transform: translateZ(7px) translateY(-7px); box-shadow: 0 17px 26px rgba(0,120,215,0.33); }
-    100% { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
-  }
-  @keyframes float4 {
-    0%   { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
-    50%  { transform: translateZ(9px) translateY(-5px); box-shadow: 0 19px 29px rgba(0,120,215,0.37); }
-    100% { transform: translateZ(0) translateY(0); box-shadow: 0 12px 18px rgba(0,120,215,0.25); }
-  }
-
+  /* ==== 操作按钮 ==== */
   button {
     font-weight: 600;
     font-size: 16px;
@@ -175,15 +181,11 @@
       0 2px 4px 0 rgba(0,0,0,0.15);
     cursor: pointer;
     user-select: none;
-    transition:
-      background-color 0.25s ease,
-      box-shadow 0.25s ease,
-      color 0.25s ease;
+    transition: background-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
     backdrop-filter: blur(12px);
     z-index: 10;
     text-align: center;
     line-height: normal;
-    height: auto;
     min-height: 40px;
     font-family: 'Segoe UI Mono', 'Consolas', 'Courier New', monospace, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     letter-spacing: 0.05em;
@@ -191,32 +193,22 @@
     align-items: center;
     justify-content: center;
     padding: 10px 24px;
+    user-select: none;
   }
-  button:hover {
+  button:hover, button:focus-visible {
     background: rgba(0, 120, 215 / 0.15);
-    color: #000000;
-    box-shadow:
-      0 0 8px 2px rgba(0,120,215,0.6);
+    color: #000;
+    box-shadow: 0 0 8px 2px rgba(0,120,215,0.6);
+    outline: none;
   }
+  #btn-refresh { position: fixed; top: 16px; right: 16px; }
+  #btn-time { position: fixed; top: 72px; right: 16px; }
+  #btn-home { position: fixed; top: 128px; right: 16px; }
+  #btn-save { position: fixed; top: 184px; right: 16px; }
+  #btn-share { position: fixed; top: 240px; right: 16px; }
+  #btn-open { position: fixed; top: 296px; right: 16px; }
+  #btn-stats-toggle { position: fixed; top: 352px; right: 16px; }
 
-  #btn-refresh {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    width: auto; /* 由JS控制 */
-  }
-  #btn-time {
-    position: fixed;
-    top: 72px; /* 距刷新按钮56px */
-    right: 16px;
-    width: auto; /* 由JS控制 */
-  }
-  #btn-home {
-    position: fixed;
-    top: 128px; /* 时间按钮下方=72+56 */
-    right: 16px;
-    width: auto; /* 由JS控制 */
-  }
   #btn-time span {
     user-select: all;
     width: 100%;
@@ -226,9 +218,11 @@
     -webkit-user-drag: none;
     user-drag: none;
   }
+
+  /* ==== 提示吐司 ==== */
   #toast {
     position: fixed;
-    top: 178px; /* 128 + 50px (按钮高约40+10) */
+    top: 178px;
     right: 16px;
     background: rgba(0,0,0,0.75);
     color: white;
@@ -243,21 +237,109 @@
     transition: opacity 0.3s ease;
     z-index: 100;
   }
-  #toast.show {
-    opacity: 1;
+  #toast.show { opacity: 1; }
+
+  /* ==== 复制确认弹窗 ==== */
+  #confirm-overlay {
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
   }
+  #confirm-box {
+    background: rgba(255 255 255 / 0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 20px 28px;
+    max-width: 320px;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.25);
+    text-align: center;
+    font-weight: 600;
+    color: #0078D7;
+    user-select: none;
+  }
+  #confirm-msg {
+    margin-bottom: 20px;
+    font-size: 16px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  #confirm-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+  #confirm-buttons button {
+    flex: 1;
+    min-width: 80px;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.25s ease;
+    color: white;
+  }
+  #confirm-ok {
+    background-color: #0078D7;
+  }
+  #confirm-ok:hover, #confirm-ok:focus {
+    background-color: #005EA1;
+    outline:none;
+  }
+  #confirm-cancel {
+    background-color: #888;
+  }
+  #confirm-cancel:hover, #confirm-cancel:focus {
+    background-color: #555;
+    outline:none;
+  }
+
+  /* ==== 统计数据面板 ==== */
+  #stats-panel {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(255 255 255 / 0.9);
+    backdrop-filter: blur(14px);
+    border-radius: 12px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.25);
+    padding: 16px 20px;
+    color: #0078D7;
+    font-weight: 600;
+    font-size: 14px;
+    font-family: "Chill Round Gothic", 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+    max-width: 320px;
+    display: none;
+    z-index: 150;
+  }
+  #stats-panel h3 {
+    margin: 0 0 10px;
+    font-weight: 700;
+  }
+  #stats-panel ul {
+    margin: 0;
+    padding-left: 16px;
+  }
+  #stats-panel ul li {
+    margin-bottom: 6px;
+  }
+
 </style>
 </head>
 <body>
 <div id="container" role="main" aria-label="桌面壁纸展示区">
-  <div id="windows-icon" aria-hidden="true" role="img" aria-label="Windows 图标" style="display:flex;">
-    <div class="win-rect win-rect1"></div>
-    <div class="win-rect win-rect2"></div>
-    <div class="win-rect win-rect3"></div>
-    <div class="win-rect win-rect4"></div>
-  </div>
+  <!-- 图片源主页方块 -->
+  <div id="windows-icon" aria-hidden="true" role="img" aria-label="图片源选择" style="display:grid;"></div>
 
+  <!-- 模糊背景 -->
   <img id="bg-blur" aria-hidden="true" alt="" />
+  <!-- 图片展示区 -->
   <div id="image-wrapper">
     <img id="img" alt="随机桌面壁纸" />
     <div id="progress-container" aria-hidden="true">
@@ -266,14 +348,58 @@
     <div id="progress-text" role="alert"></div>
   </div>
 
+  <!-- 操作按钮 -->
   <button id="btn-refresh" aria-label="刷新壁纸" type="button">刷新壁纸</button>
   <button id="btn-time" aria-label="当前时间" type="button" tabindex="-1"><span>--:--:--</span></button>
   <button id="btn-home" aria-label="返回主页" type="button" tabindex="-1">返回主页</button>
+  <button id="btn-save" aria-label="保存当前图片" type="button" tabindex="-1" title="保存当前图片">保存图片</button>
+  <button id="btn-share" aria-label="分享当前图片链接" type="button" tabindex="-1" title="分享">分享</button>
+  <button id="btn-open" aria-label="使用本地软件打开图片" type="button" tabindex="-1" title="打开图片">打开图片</button>
+  <button id="btn-stats-toggle" aria-label="切换显示统计数据" type="button" tabindex="-1" title="统计">统计</button>
 
+  <!-- 吐司提示 -->
   <div id="toast" role="alert" aria-live="assertive">已在主页</div>
+
+  <!-- 复制确认弹窗 -->
+  <div id="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-msg">
+    <div id="confirm-box">
+      <div id="confirm-msg"></div>
+      <div id="confirm-buttons">
+        <button id="confirm-ok" type="button">确认</button>
+        <button id="confirm-cancel" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 统计数据面板 -->
+  <aside id="stats-panel" aria-live="polite" aria-atomic="true" aria-label="统计数据面板">
+    <h3>统计数据</h3>
+    <ul>
+      <li id="stat-start-time"></li>
+      <li id="stat-loaded-images"></li>
+      <li id="stat-refresh-count"></li>
+      <li id="stat-share-count"></li>
+    </ul>
+  </aside>
 </div>
 
 <script>
+(() => {
+  'use strict';
+
+  /* ==== 数据区 ==== */
+  const sources = [
+    { url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=2', label: 'I',   color: 'hsl(205, 90%,  50%)' },
+    { url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=4', label: 'II',  color: 'hsl(120, 75%, 42%)' },
+    { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=极品美女图片', label: 'III',color: 'hsl(330, 85%, 45%)' },
+    { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=日本COS中国COS', label: 'IV',  color: 'hsl(40, 86%, 56%)' },
+    { url: 'https://api.lolimi.cn/API/meizi/api.php?type=image', label: 'V',     color: 'hsl(280, 70%, 53%)' },
+    { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=少女写真6', label: 'VI',  color: 'hsl(15, 70%, 48%)' },
+    { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=死库水萝莉', label: 'VII', color: 'hsl(190, 80%, 55%)' },
+    { url: 'https://api.lolimi.cn/API/meizi/api.php?type=image', label: 'VIII', color: 'hsl(280, 70%, 53%)' }
+  ];
+  sources[0].color = 'hsl(205, 90%, 50%)';
+
   const windowsIcon = document.getElementById('windows-icon');
   const bgBlur = document.getElementById('bg-blur');
   const img = document.getElementById('img');
@@ -284,20 +410,77 @@
   const btnTime = document.getElementById('btn-time').querySelector('span');
   const btnTimeBtn = document.getElementById('btn-time');
   const btnHome = document.getElementById('btn-home');
+  const btnSave = document.getElementById('btn-save');
+  const btnShare = document.getElementById('btn-share');
+  const btnOpen = document.getElementById('btn-open');
+  const btnStatsToggle = document.getElementById('btn-stats-toggle');
   const toast = document.getElementById('toast');
 
-  // 状态变量
-  let currentImageUrl = '';
-  let imgVisible = true; 
-  let hasLoadedImage = false; // 是否加载成功过图片
-  let currentView = 'homepage'; // 'homepage' or 'imagepage'
+  const confirmOverlay = document.getElementById('confirm-overlay');
+  const confirmMsg = document.getElementById('confirm-msg');
+  const confirmOk = document.getElementById('confirm-ok');
+  const confirmCancel = document.getElementById('confirm-cancel');
 
-  // 上一次图片显示状态（精确记录时间按钮是否隐藏图片）
+  const statsPanel = document.getElementById('stats-panel');
+  const statStartTime = document.getElementById('stat-start-time');
+  const statLoadedImages = document.getElementById('stat-loaded-images');
+  const statRefreshCount = document.getElementById('stat-refresh-count');
+  const statShareCount = document.getElementById('stat-share-count');
+
+  /* ==== 状态变量 ==== */
+  let currentSourceIndex = 0;
+  let currentImageUrl = '';
+  let imgVisible = true;
+  let hasLoadedImage = false;
+  let currentView = 'homepage';
   let lastImageVisible = true;
 
-  const baseImageURL = 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=2';
+  // 统计数据
+  let stats = {
+    startTime: new Date(),
+    loadedImages: new Set(),       // 用 Set去重不同url
+    refreshCount: 0,
+    shareCount: 0,
+  };
 
-  // 计算边缘平均色
+  /* ==== 功能模块 ==== */
+
+  function initSourceBlocks(){
+    windowsIcon.innerHTML = '';
+    sources.forEach(({label, color}, i) => {
+      const block = document.createElement('div');
+      block.className = 'src-block';
+      block.style.backgroundColor = color;
+      block.setAttribute('role','button');
+      block.setAttribute('tabindex','0');
+      block.setAttribute('aria-label','图片源 ' + label);
+      block.dataset.index = i;
+      block.innerHTML = `
+        <div style="font-size:20px;line-height:1;">${label}</div>
+        <div style="font-size:11px;line-height:1.2;margin-top:4px;">源</div>
+      `;
+
+      block.addEventListener('click', () => {
+        if(currentSourceIndex !== i) {
+          currentSourceIndex = i;
+          refreshImage();
+        }
+      });
+      block.addEventListener('keydown', (e) => {
+        if(e.key === "Enter" || e.key === " "){
+          e.preventDefault();
+          block.click();
+        }
+      });
+      block.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        showCopyConfirm(e.pageX, e.pageY, i);
+      });
+
+      windowsIcon.appendChild(block);
+    });
+  }
+
   function getAverageEdgeColor(image, edgeSize = 30) {
     return new Promise(resolve => {
       try {
@@ -327,11 +510,7 @@
           }
         }
         if (count === 0) return resolve([0, 0, 0]);
-        resolve([
-          Math.round(rSum / count),
-          Math.round(gSum / count),
-          Math.round(bSum / count)
-        ]);
+        resolve([Math.round(rSum / count), Math.round(gSum / count), Math.round(bSum / count)]);
       } catch {
         resolve([0, 0, 0]);
       }
@@ -383,7 +562,8 @@
   }
 
   async function refreshImage() {
-    currentImageUrl = baseImageURL + '&_ts=' + Date.now();
+    let sourceUrl = sources[currentSourceIndex].url;
+    currentImageUrl = sourceUrl + (sourceUrl.includes('?') ? '&' : '?') + '_ts=' + Date.now();
 
     windowsIcon.style.display = 'none';
     img.style.display = 'block';
@@ -398,16 +578,25 @@
     img.style.opacity = '0';
 
     simulateProgressLoading(img, progressBar, progressContainer, async () => {
-      const avgColor = await getAverageEdgeColor(img, 40);
-      const bgCss = rgbToCss(avgColor);
-      document.body.style.backgroundColor = bgCss;
+      try {
+        const avgColor = await getAverageEdgeColor(img, 40);
+        const bgCss = rgbToCss(avgColor);
+        document.body.style.backgroundColor = bgCss;
+      } catch {
+        document.body.style.backgroundColor = '#fff';
+      }
 
       bgBlur.src = img.src;
       bgBlur.onload = () => {
         bgBlur.style.opacity = '0.3';
       };
+
+      // 统计：记录加载的url，计算加载次数
+      stats.loadedImages.add(currentImageUrl);
+      stats.refreshCount++;
+      updateStatsUI();
     }, () => {
-      windowsIcon.style.display = 'flex';
+      windowsIcon.style.display = 'grid';
       img.style.display = 'none';
       bgBlur.style.opacity = '0';
       bgBlur.style.display = 'none';
@@ -432,7 +621,6 @@
     btnTime.textContent = formatTime(now);
   }
 
-  // Toast提示，2秒消失
   let toastTimer = null;
   function showToast(text) {
     toast.textContent = text;
@@ -443,15 +631,142 @@
     }, 2000);
   }
 
-  // 使两个按钮宽度完全一致
   function unifyButtonWidth() {
     const width = btnTimeBtn.getBoundingClientRect().width;
     btnRefresh.style.width = width + 'px';
     btnHome.style.width = width + 'px';
+    btnSave.style.width = width + 'px';
+    btnShare.style.width = width + 'px';
+    btnOpen.style.width = width + 'px';
+    btnStatsToggle.style.width = width + 'px';
   }
 
+  /* —— 复制地址确认弹窗 —— */
+  let confirmCallbackYes = null;
+
+  function showCopyConfirm(x, y, sourceIndex) {
+    confirmOverlay.style.display = 'flex';
+    confirmMsg.textContent = `是否复制此图片源的地址？\n【${sources[sourceIndex].label}】: ${sources[sourceIndex].url}`;
+    confirmOverlay.style.top = y + 'px';
+    confirmOverlay.style.left = x + 'px';
+    confirmOverlay.style.position = 'absolute';
+
+    confirmCallbackYes = () => {
+      copyTextToClipboard(sources[sourceIndex].url);
+      hideCopyConfirm();
+      showToast('已复制图片源地址');
+    };
+    confirmOk.focus();
+  }
+  function hideCopyConfirm() {
+    confirmOverlay.style.display = 'none';
+    confirmCallbackYes = null;
+  }
+  confirmOk.onclick = () => { if(confirmCallbackYes) confirmCallbackYes(); };
+  confirmCancel.onclick = () => { hideCopyConfirm(); };
+  confirmOverlay.onclick = (e) => { if(e.target === confirmOverlay) hideCopyConfirm(); };
+  window.addEventListener('keydown', (e) => {
+    if (confirmOverlay.style.display === 'flex') {
+      if (e.key === 'Escape') { e.preventDefault(); hideCopyConfirm(); }
+      else if (e.key === 'Enter') { e.preventDefault(); if(confirmCallbackYes) confirmCallbackYes(); }
+    }
+  });
+  function copyTextToClipboard(text) {
+    if(navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(()=>fallbackCopyText(text));
+    } else {
+      fallbackCopyText(text);
+    }
+  }
+  function fallbackCopyText(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch {}
+    document.body.removeChild(ta);
+  }
+
+  /* ==== 保存当前图片功能 —— 利用a标签下载 === */
+  function saveCurrentImage() {
+    if(!img.src) {
+      showToast('暂无图片可保存');
+      return;
+    }
+    fetch(img.src, { mode: 'cors' }) // 防止跨域，可以根据实际情况改进或提示
+      .then(resp => resp.blob())
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'nsfwall-image-' + Date.now() + '.jpg';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast('图片已保存');
+      }).catch(() => showToast('保存失败，可能存在跨域限制'));
+  }
+
+  /* ==== 分享当前图片链接 ==== */
+  function shareCurrentImage() {
+    if(!img.src){
+      showToast('暂无图片可分享');
+      return;
+    }
+    // 先统计分享次数
+    stats.shareCount++;
+    updateStatsUI();
+
+    if(navigator.share) {
+      navigator.share({
+        title: 'NSFWall随机壁纸',
+        text: '看看我刚刚获得的随机壁纸',
+        url: img.src
+      }).catch(() => showToast('分享未完成'));
+    } else {
+      copyTextToClipboard(img.src);
+      showToast('不支持直接分享，已复制链接');
+    }
+  }
+
+  /**
+   * 本地打开图片功能，因为浏览器安全等限制，通常只能用浏览器打开或用a标签下载暂代。
+   * 这里提供打开新标签页查看大图代替。
+   */
+  function openImageLocally() {
+    if(!img.src) {
+      showToast('暂无图片可打开');
+      return;
+    }
+    window.open(img.src, '_blank', 'noopener,noreferrer');
+    showToast('已在新标签页打开图片');
+  }
+
+  /* ==== 统计数据显示与更新 ==== */
+  function updateStatsUI() {
+    statStartTime.textContent = `开始时间: ${stats.startTime.toLocaleString()}`;
+    statLoadedImages.textContent = `已加载图片数: ${stats.loadedImages.size}`;
+    statRefreshCount.textContent = `刷新次数: ${stats.refreshCount}`;
+    statShareCount.textContent = `分享次数: ${stats.shareCount}`;
+  }
+  function toggleStatsPanel() {
+    if(statsPanel.style.display === 'block') {
+      statsPanel.style.display = 'none';
+    } else {
+      updateStatsUI();
+      statsPanel.style.display = 'block';
+    }
+  }
+
+  /* ==== 页面入口 ==== */
   window.addEventListener('DOMContentLoaded', () => {
+    initSourceBlocks();
     btnRefresh.addEventListener('click', refreshImage);
+    btnSave.addEventListener('click', saveCurrentImage);
+    btnShare.addEventListener('click', shareCurrentImage);
+    btnOpen.addEventListener('click', openImageLocally);
+    btnStatsToggle.addEventListener('click', toggleStatsPanel);
 
     document.body.style.backgroundColor = '#fff';
     updateTime();
@@ -467,11 +782,9 @@
     btnHome.addEventListener('click', () => {
       if (currentView === 'homepage') {
         if (!hasLoadedImage) {
-          // 没加载过图片提示已在主页
           showToast('已在主页');
           return;
         }
-        // 已有加载过图片，返回图片页并恢复图片显示状态和背景
         windowsIcon.style.display = 'none';
         img.style.display = lastImageVisible ? 'block' : 'none';
         imgVisible = lastImageVisible;
@@ -479,26 +792,59 @@
         bgBlur.style.opacity = '0.3';
         currentView = 'imagepage';
       } else if (currentView === 'imagepage') {
-        // 切换到主页，保存当前图片显示状态，隐藏图和模糊背景，显示Windows图标
         lastImageVisible = imgVisible;
         img.style.display = 'none';
         imgVisible = false;
         bgBlur.style.opacity = '0';
         setTimeout(() => {
-          if (currentView === 'homepage') {
-            bgBlur.style.display = 'none';
-          }
+          if (currentView === 'homepage') bgBlur.style.display = 'none';
         }, 300);
-        windowsIcon.style.display = 'flex';
+        windowsIcon.style.display = 'grid';
         currentView = 'homepage';
       }
     });
 
     unifyButtonWidth();
-
-    // 监听窗口resize时实时更新按钮宽度
     window.addEventListener('resize', unifyButtonWidth);
+
+    /* 自动刷新功能 -- 略，见前版本，需要时可添加 */
+
+    /* 键盘快捷键操作 */
+    window.addEventListener('keydown', (e) => {
+      if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.isComposing) return;
+      switch(e.key){
+        case 'r': // R 刷新
+          e.preventDefault();
+          refreshImage();
+          break;
+        case 'h': // H 返回主页
+          e.preventDefault();
+          btnHome.click();
+          break;
+        case 't': // T 切换图片显示
+          e.preventDefault();
+          btnTimeBtn.click();
+          break;
+        case 's': // S 保存图片
+          e.preventDefault();
+          saveCurrentImage();
+          break;
+        case 'c': // C 分享图片
+          e.preventDefault();
+          shareCurrentImage();
+          break;
+        case 'o': // O 打开新标签
+          e.preventDefault();
+          openImageLocally();
+          break;
+        case 'p': // P 显示/隐藏统计
+          e.preventDefault();
+          toggleStatsPanel();
+          break;
+      }
+    });
   });
+})();
 </script>
 </body>
 </html>
