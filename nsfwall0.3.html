@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no" />
+<title>NSFWall – Not Safe for Wallpaper (0.3 Enhanced with Stats & Share)</title>
+<style>
+  /* ==== 导入字体，保留备选字体及本地普通字体 ==== */
+  @import url("https://fontsapi.zeoseven.com/83/main/result.css");
+
+  body, button {
+    font-family: "Chill Round Gothic", 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: normal;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0; padding: 0;
+    background-color: #fff;
+    overflow: hidden;
+    user-select: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #container {
+    position: relative;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    background-color: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* 背景模糊 */
+  #bg-blur {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    object-fit: cover;
+    filter: blur(24px);
+    transform: scale(1.1);
+    opacity: 0.3;
+    z-index: 0;
+    pointer-events: none;
+    user-select: none;
+    transition: opacity 0.5s ease;
+    display: none;
+  }
+
+  /* 图片展示区 */
+  #image-wrapper {
+    position: relative;
+    z-index: 2;
+    height: 100vh; max-width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #img {
+    max-width: 100vw;
+    max-height: 100vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.37),
+      0 2px 4px rgba(0,0,0,0.2);
+    user-select: none;
+    pointer-events: auto;
+    transition: opacity 0.35s ease;
+    background-color: transparent;
+    display: none;
+  }
+
+  /* 进度条 */
+  #progress-container {
+    position: absolute;
+    top: 16px; left: 50%;
+    transform: translateX(-50%);
+    width: 320px; height: 6px;
+    border-radius: 3px;
+    background: rgba(255 255 255 / 0.2);
+    box-shadow: inset 0 0 8px rgba(255 255 255 / 0.6);
+    overflow: hidden;
+    user-select: none;
+    display: none;
+  }
+  #progress-bar {
+    width: 0%; height: 100%;
+    background: linear-gradient(90deg,#0078D7,#00BCF2);
+    border-radius: 3px 0 0 3px;
+    transition: width 0.15s ease-out;
+  }
+  #progress-text {
+    position: absolute;
+    bottom: 40px; left: 50%;
+    transform: translateX(-50%);
+    color: #F1707A;
+    font-weight: 600;
+    font-size: 14px;
+    user-select: none;
+    display: none;
+    z-index: 10;
+  }
+
+  /* 主页面 - 图片源方块网格，改用role=listbox+option提升a11y */
+  #windows-icon {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(4, 70px);
+    grid-gap: 16px;
+    padding: 16px;
+    justify-content: center;
+    align-items: center;
+    perspective: 800px;
+    user-select: none;
+  }
+  /* 方块基础样式 */
+  .src-block {
+    width: 70px; height: 70px;
+    border-radius: 8px;
+    box-shadow:
+      0 12px 18px rgba(0,0,0,0.15),
+      inset 0 2px 6px rgba(255 255 255 / 0.3);
+    color: white;
+    font-family: 'Segoe UI Mono', Consolas, monospace;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    cursor: pointer;
+    text-align: center;
+    user-select: none;
+    transition:
+      box-shadow 0.3s ease,
+      transform 0.3s ease;
+    transform-style: preserve-3d;
+    position: relative;
+  }
+  @keyframes floatBlock {
+    0%, 100% {
+      transform: translateZ(0) translateY(0); 
+      box-shadow: 0 12px 18px rgba(0,0,0,0.15), inset 0 2px 6px rgba(255 255 255 / 0.3);
+    }
+    50% {
+      transform: translateZ(8px) translateY(-7px);
+      box-shadow: 0 22px 28px rgba(0,0,0,0.25), inset 0 6px 12px rgba(255 255 255 / 0.5);
+    }
+  }
+  .src-block:nth-child(1) { animation: floatBlock 4.2s ease-in-out infinite alternate; animation-delay: 0s; }
+  .src-block:nth-child(2) { animation: floatBlock 4.7s ease-in-out infinite alternate; animation-delay: 0.15s; }
+  .src-block:nth-child(3) { animation: floatBlock 5.1s ease-in-out infinite alternate; animation-delay: 0.3s; }
+  .src-block:nth-child(4) { animation: floatBlock 4.5s ease-in-out infinite alternate; animation-delay: 0.4s; }
+  .src-block:nth-child(5) { animation: floatBlock 5s ease-in-out infinite alternate; animation-delay: 0.55s; }
+  .src-block:nth-child(6) { animation: floatBlock 4.3s ease-in-out infinite alternate; animation-delay: 0.7s; }
+  .src-block:nth-child(7) { animation: floatBlock 4.8s ease-in-out infinite alternate; animation-delay: 0.85s; }
+  .src-block:nth-child(8) { animation: floatBlock 4.8s ease-in-out infinite alternate; animation-delay: 0.9s; }
+
+  /* 鼠标hover放大10% */
+  .src-block:hover, .src-block:focus-visible {
+    box-shadow:
+      0 24px 32px rgba(0,0,0,0.3),
+      inset 0 5px 10px rgba(255 255 255 / 0.4);
+    transform: translateY(-6px) translateZ(12px) scale(1.1);
+    outline: none;
+  }
+
+  /* 按钮统一改为flex自适应，无需js设置宽度 */
+  .btn-group {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+  }
+  button {
+    font-weight: 600;
+    font-size: 16px;
+    color: #0078D7;
+    background: rgba(255 255 255 / 0.1);
+    border: none;
+    border-radius: 8px;
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.1),
+      0 2px 4px 0 rgba(0,0,0,0.15);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+    backdrop-filter: blur(12px);
+    text-align: center;
+    line-height: normal;
+    min-height: 40px;
+    font-family: 'Segoe UI Mono', 'Consolas', 'Courier New', monospace, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 24px;
+  }
+  button:hover, button:focus-visible {
+    background: rgba(0, 120, 215 / 0.15);
+    color: #000;
+    box-shadow: 0 0 8px 2px rgba(0,120,215,0.6);
+    outline: none;
+  }
+  button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  #btn-time span {
+    user-select: all;
+  }
+  img {
+    -webkit-user-drag: none;
+    user-drag: none;
+  }
+
+  /* 吐司 */
+  #toast {
+    position: fixed;
+    top: 178px;
+    right: 16px;
+    background: rgba(0,0,0,0.75);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 100;
+  }
+  #toast.show { opacity: 1; }
+
+  /* 复制确认弹窗：改为固定居中定位，增强无障碍 */
+  #confirm-overlay {
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+  }
+  #confirm-box {
+    background: rgba(255 255 255 / 0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 20px 28px;
+    max-width: 320px;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.25);
+    text-align: center;
+    font-weight: 600;
+    color: #0078D7;
+    user-select: none;
+  }
+  #confirm-msg {
+    margin-bottom: 20px;
+    font-size: 16px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  #confirm-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+  #confirm-buttons button {
+    flex: 1;
+    min-width: 80px;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.25s ease;
+    color: white;
+  }
+  #confirm-ok {
+    background-color: #0078D7;
+  }
+  #confirm-ok:hover, #confirm-ok:focus {
+    background-color: #005EA1;
+    outline:none;
+  }
+  #confirm-cancel {
+    background-color: #888;
+  }
+  #confirm-cancel:hover, #confirm-cancel:focus {
+    background-color: #555;
+    outline:none;
+  }
+
+  /* 统计面板 */
+  #stats-panel {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(255 255 255 / 0.9);
+    backdrop-filter: blur(14px);
+    border-radius: 12px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.25);
+    padding: 16px 20px;
+    color: #0078D7;
+    font-weight: 600;
+    font-size: 14px;
+    font-family: "Chill Round Gothic", 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+    max-width: 320px;
+    display: none;
+    z-index: 150;
+  }
+  #stats-panel h3 {
+    margin: 0 0 10px;
+    font-weight: 700;
+  }
+  #stats-panel ul {
+    margin: 0;
+    padding-left: 16px;
+  }
+  #stats-panel ul li {
+    margin-bottom: 6px;
+  }
+
+  /* 响应式小屏适配 */
+  @media (max-width: 480px) {
+    #windows-icon {
+      grid-template-columns: repeat(2, 70px);
+      grid-gap: 12px;
+      padding: 12px;
+    }
+    #progress-container {
+      width: 80vw;
+    }
+    .btn-group {
+      top: auto;
+      bottom: 16px;
+      right: 16px;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-width: calc(100vw - 32px);
+    }
+    button {
+      flex-grow: 1;
+      min-width: 70px;
+      font-size: 14px;
+      padding: 8px 12px;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="container" role="main" aria-label="桌面壁纸展示区">
+  <!-- 图片源主页方块 -->
+  <div id="windows-icon" role="listbox" aria-label="图片源选择" tabindex="0" aria-multiselectable="false" style="display:grid;"></div>
+
+  <!-- 模糊背景 -->
+  <img id="bg-blur" aria-hidden="true" alt="" />
+
+  <!-- 图片展示区 -->
+  <div id="image-wrapper">
+    <img id="img" alt="" />
+    <div id="progress-container" aria-hidden="true">
+      <div id="progress-bar"></div>
+    </div>
+    <div id="progress-text" role="alert"></div>
+  </div>
+
+  <!-- 操作按钮组 -->
+  <div class="btn-group" role="group" aria-label="功能按钮">
+    <button id="btn-refresh" aria-label="刷新壁纸" type="button">刷新壁纸</button>
+    <button id="btn-time" aria-label="当前时间" type="button" tabindex="0"><span>--:--:--</span></button>
+    <button id="btn-home" aria-label="返回主页" type="button" tabindex="0">返回主页</button>
+    <button id="btn-save" aria-label="保存当前图片" type="button" tabindex="0" title="保存当前图片">保存图片</button>
+    <button id="btn-share" aria-label="分享当前图片链接" type="button" tabindex="0" title="分享">分享</button>
+    <button id="btn-copy-img" aria-label="复制图片链接到剪贴板" type="button" tabindex="0" title="复制图片链接">复制图片链接</button>
+    <button id="btn-print" aria-label="打印当前图片" type="button" tabindex="0" title="打印图片">打印图片</button>
+    <button id="btn-open" aria-label="使用软件打开图片" type="button" tabindex="0" title="打开图片">打开图片</button>
+    <button id="btn-stats-toggle" aria-label="切换显示统计数据" type="button" tabindex="0" title="统计">统计</button>
+  </div>
+
+  <!-- 吐司提示 -->
+  <div id="toast" role="alert" aria-live="assertive">已在主页</div>
+
+  <!-- 复制确认弹窗 -->
+  <div id="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-msg" tabindex="-1">
+    <div id="confirm-box">
+      <div id="confirm-msg"></div>
+      <div id="confirm-buttons">
+        <button id="confirm-ok" type="button">确认</button>
+        <button id="confirm-cancel" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 统计数据面板 -->
+  <aside id="stats-panel" aria-live="polite" aria-atomic="true" aria-label="统计数据面板">
+    <h3>统计数据</h3>
+    <ul>
+      <li id="stat-start-time"></li>
+      <li id="stat-loaded-images"></li>
+      <li id="stat-refresh-count"></li>
+      <li id="stat-share-count"></li>
+      <li id="stat-copy-count"></li>
+      <li id="stat-save-count"></li>
+    </ul>
+  </aside>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const sources = [
+    { url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=2', label: 'I',   color: 'hsl(205, 90%,  50%)' },
+    { url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=4', label: 'II',  color: 'hsl(120, 75%, 42%)' },
+    { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=极品美女图片', label: 'III',color: 'hsl(330, 85%, 45%)' },
+    { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=日本COS中国COS', label: 'IV',  color: 'hsl(40, 86%, 56%)' },
+    { url: 'https://api.lolimi.cn/API/meizi/api.php?type=image', label: 'V',     color: 'hsl(280, 70%, 53%)' },
+    { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=少女写真6', label: 'VI',  color: 'hsl(15, 70%, 48%)' },
+    { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=死库水萝莉', label: 'VII', color: 'hsl(190, 80%, 55%)' },
+    { url: 'https://api.lolimi.cn/API/meizi/api.php?type=image', label: 'VIII', color: 'hsl(280, 70%, 53%)' }
+  ];
+
+  const windowsIcon = document.getElementById('windows-icon');
+  const bgBlur = document.getElementById('bg-blur');
+  const img = document.getElementById('img');
+  const progressContainer = document.getElementById('progress-container');
+  const progressBar = document.getElementById('progress-bar');
+  const progressText = document.getElementById('progress-text');
+
+  const btnRefresh = document.getElementById('btn-refresh');
+  const btnTimeBtn = document.getElementById('btn-time');
+  const btnTimeSpan = btnTimeBtn.querySelector('span');
+  const btnHome = document.getElementById('btn-home');
+  const btnSave = document.getElementById('btn-save');
+  const btnShare = document.getElementById('btn-share');
+  const btnCopyImg = document.getElementById('btn-copy-img');
+  const btnPrint = document.getElementById('btn-print');
+  const btnOpen = document.getElementById('btn-open');
+  const btnStatsToggle = document.getElementById('btn-stats-toggle');
+
+  const toast = document.getElementById('toast');
+  const confirmOverlay = document.getElementById('confirm-overlay');
+  const confirmMsg = document.getElementById('confirm-msg');
+  const confirmOk = document.getElementById('confirm-ok');
+  const confirmCancel = document.getElementById('confirm-cancel');
+
+  const statsPanel = document.getElementById('stats-panel');
+  const statStartTime = document.getElementById('stat-start-time');
+  const statLoadedImages = document.getElementById('stat-loaded-images');
+  const statRefreshCount = document.getElementById('stat-refresh-count');
+  const statShareCount = document.getElementById('stat-share-count');
+  const statCopyCount = document.getElementById('stat-copy-count');
+  const statSaveCount = document.getElementById('stat-save-count');
+
+  let currentSourceIndex = 0;
+  let currentImageUrl = '';
+  let imgVisible = true;
+  let hasLoadedImage = false;
+  let currentView = 'homepage';
+  let lastImageVisible = true;
+  let avgColorCache = new Map();
+
+  let stats = {
+    startTime: new Date(),
+    loadedImages: new Set(),
+    refreshCount: 0,
+    shareCount: 0,
+    copyCount: 0,
+    saveCount: 0,
+  };
+
+  let toastTimer = null;
+
+  // 初始化图片源按钮
+  function initSourceBlocks(){
+    windowsIcon.innerHTML = '';
+    sources.forEach(({label, color}, i) => {
+      const block = document.createElement('div');
+      block.className = 'src-block';
+      block.style.backgroundColor = color;
+      block.setAttribute('role','option');
+      block.setAttribute('tabindex','-1');
+      block.setAttribute('aria-label','图片源 ' + label);
+      block.dataset.index = i;
+      block.textContent = label;
+
+      block.addEventListener('click', () => {
+        if(currentSourceIndex !== i) {
+          currentSourceIndex = i;
+          refreshImage();
+          updateSelectedSource();
+        }
+      });
+
+      block.addEventListener('keydown', (e) => {
+        if(e.key === "Enter" || e.key === " "){
+          e.preventDefault();
+          block.click();
+        }
+      });
+
+      block.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        showCopyConfirm(i);
+      });
+
+      windowsIcon.appendChild(block);
+    });
+    updateSelectedSource();
+  }
+  function updateSelectedSource(){
+    const options = windowsIcon.querySelectorAll('[role="option"]');
+    options.forEach((opt, idx) => {
+      if(idx === currentSourceIndex){
+        opt.setAttribute('aria-selected', 'true');
+        opt.tabIndex = 0;
+        opt.focus();
+      } else {
+        opt.setAttribute('aria-selected', 'false');
+        opt.tabIndex = -1;
+      }
+    });
+  }
+
+  // 利用独立Image获取边缘平均色，带crossOrigin
+  function getAverageEdgeColor(imageUrl, edgeSize = 30) {
+    return new Promise((resolve) => {
+      if(avgColorCache.has(imageUrl)){
+        resolve(avgColorCache.get(imageUrl));
+        return;
+      }
+      const tempImg = new Image();
+      tempImg.crossOrigin = 'anonymous';
+      tempImg.src = imageUrl;
+      tempImg.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = tempImg.naturalWidth;
+          canvas.height = tempImg.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(tempImg, 0, 0);
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imgData.data;
+          let rSum = 0, gSum = 0, bSum = 0, count = 0;
+          const w = canvas.width, h = canvas.height;
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              if (y < edgeSize || y >= h - edgeSize || x < edgeSize || x >= w - edgeSize) {
+                const idx = (y * w + x) * 4;
+                if (data[idx + 3] > 128) {
+                  rSum += data[idx];
+                  gSum += data[idx + 1];
+                  bSum += data[idx + 2];
+                  count++;
+                }
+              }
+            }
+          }
+          if (count === 0) {
+            avgColorCache.set(imageUrl, [255,255,255]);
+            return resolve([255,255,255]);
+          }
+          const rgb = [Math.round(rSum / count), Math.round(gSum / count), Math.round(bSum / count)];
+          avgColorCache.set(imageUrl, rgb);
+          resolve(rgb);
+        } catch {
+          resolve([255,255,255]);
+        }
+      };
+      tempImg.onerror = () => resolve([255,255,255]);
+    });
+  }
+  function rgbToCss(rgb) {
+    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+  }
+
+  function simulateProgressLoading(imgElement, progressBarElement, progressContainerElement, onLoad, onError) {
+    let progress = 0;
+    progressBarElement.style.width = '0%';
+    progressContainerElement.style.display = 'block';
+    progressText.style.display = 'none';
+
+    const timer = setInterval(() => {
+      if (progress < 90) {
+        progress += 10;
+        progressBarElement.style.width = progress + '%';
+      }
+    }, 200);
+
+    const cleanup = () => {
+      clearInterval(timer);
+      imgElement.onload = null;
+      imgElement.onerror = null;
+    };
+
+    imgElement.onload = () => {
+      cleanup();
+      progressBarElement.style.width = '100%';
+      setTimeout(() => {
+        progressContainerElement.style.display = 'none';
+      }, 300);
+      progressText.style.display = 'none';
+      imgElement.style.opacity = '1';
+      onLoad && onLoad();
+    };
+
+    imgElement.onerror = () => {
+      cleanup();
+      progressContainerElement.style.display = 'none';
+      progressText.textContent = '加载失败，请刷新重试';
+      progressText.style.display = 'block';
+      imgElement.style.opacity = '0';
+      onError && onError();
+    };
+  }
+
+  // 简单拼接时间戳参数（无编码）
+  function buildImageUrl(baseUrl){
+    return baseUrl + (baseUrl.includes('?') ? '&' : '?') + '_ts=' + Date.now();
+  }
+
+  async function refreshImage() {
+    const sourceUrl = sources[currentSourceIndex].url;
+    currentImageUrl = buildImageUrl(sourceUrl);
+
+    windowsIcon.style.display = 'none';
+    img.style.opacity = '0';
+    img.style.display = 'block';
+    // 不给主展示图片设置crossOrigin
+    // img.crossOrigin = 'anonymous';
+
+    imgVisible = true;
+    lastImageVisible = true;
+    bgBlur.style.display = 'block';
+    bgBlur.style.opacity = '0.3';
+    currentView = 'imagepage';
+    hasLoadedImage = true;
+
+    progressText.style.display = 'none';
+
+    simulateProgressLoading(img, progressBar, progressContainer, async () => {
+      try {
+        const avgColor = await getAverageEdgeColor(img.src, 40);
+        document.body.style.backgroundColor = rgbToCss(avgColor);
+      } catch {
+        document.body.style.backgroundColor = '#fff';
+      }
+
+      bgBlur.src = img.src;
+      bgBlur.onload = () => {
+        bgBlur.style.opacity = '0.3';
+      };
+
+      btnCopyImg.dataset.clipboardText = img.src;
+
+      stats.loadedImages.add(currentImageUrl);
+      stats.refreshCount++;
+      updateStatsUI();
+      btnCopyImg.disabled = false;
+      btnSave.disabled = false;
+      btnShare.disabled = false;
+      btnPrint.disabled = false;
+      btnOpen.disabled = false;
+    }, () => {
+      windowsIcon.style.display = 'grid';
+      img.style.display = 'none';
+      bgBlur.style.opacity = '0';
+      bgBlur.style.display = 'none';
+      bgBlur.src = '';
+      document.body.style.backgroundColor = '#fff';
+      currentView = 'homepage';
+      hasLoadedImage = false;
+      imgVisible = false;
+      lastImageVisible = false;
+      btnCopyImg.dataset.clipboardText = '';
+
+      btnCopyImg.disabled = true;
+      btnSave.disabled = true;
+      btnShare.disabled = true;
+      btnPrint.disabled = true;
+      btnOpen.disabled = true;
+    });
+
+    img.alt = `来自${sources[currentSourceIndex].label}的随机桌面壁纸`;
+    img.src = currentImageUrl;
+  }
+
+  function formatTime(date) {
+    const pad = n => (n < 10 ? '0' + n : n);
+    return pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());
+  }
+  let timeUpdateTimer = null;
+  function updateTime() {
+    const now = new Date();
+    btnTimeSpan.textContent = formatTime(now);
+  }
+  function setupTimeUpdater(){
+    updateTime();
+    if(timeUpdateTimer) clearInterval(timeUpdateTimer);
+    timeUpdateTimer = setInterval(() => {
+      if(document.hidden) return;
+      updateTime();
+    }, 1000);
+  }
+
+  function showToast(text) {
+    toast.textContent = text;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2000);
+  }
+
+  async function copyTextToClipboard(text){
+    if(!text){
+      showToast('无可复制内容');
+      return;
+    }
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        showToast('已复制到剪贴板');
+      } else {
+        fallbackCopyText(text);
+      }
+      stats.copyCount++;
+      updateStatsUI();
+    } catch(e){
+      fallbackCopyText(text);
+    }
+  }
+  function fallbackCopyText(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+      showToast('已复制到剪贴板（旧版）');
+    } catch {
+      showToast('复制失败，请手动复制');
+    }
+    document.body.removeChild(ta);
+  }
+
+  function trapFocus(element) {
+    const focusableElementsString = 'a[href], area[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), iframe, object, embed, [tabindex="0"], [contenteditable]';
+    const focusableElements = element.querySelectorAll(focusableElementsString);
+    const firstFocusableEl = focusableElements[0];
+    const lastFocusableEl = focusableElements[focusableElements.length -1];
+
+    function handleTrap(e) {
+      if(e.key === 'Tab') {
+        if(e.shiftKey) {
+          if(document.activeElement === firstFocusableEl){
+            e.preventDefault();
+            lastFocusableEl.focus();
+          }
+        } else {
+          if(document.activeElement === lastFocusableEl){
+            e.preventDefault();
+            firstFocusableEl.focus();
+          }
+        }
+      }
+      else if(e.key === 'Escape') {
+        e.preventDefault();
+        hideCopyConfirm();
+      }
+    }
+
+    element.addEventListener('keydown', handleTrap);
+
+    return () => element.removeEventListener('keydown', handleTrap);
+  }
+
+  let trapFocusCleanup = null;
+  let confirmCallbackYes = null;
+  function showCopyConfirm(sourceIndex) {
+    confirmOverlay.style.display = 'flex';
+    confirmMsg.textContent = `是否复制此图片源的地址？\n【${sources[sourceIndex].label}】: ${sources[sourceIndex].url}`;
+    confirmOverlay.focus();
+    confirmCallbackYes = () => {
+      copyTextToClipboard(sources[sourceIndex].url);
+      hideCopyConfirm();
+    };
+    confirmOk.focus();
+    trapFocusCleanup = trapFocus(confirmOverlay);
+  }
+  function hideCopyConfirm() {
+    confirmOverlay.style.display = 'none';
+    confirmCallbackYes = null;
+    if(trapFocusCleanup) {
+      trapFocusCleanup();
+      trapFocusCleanup = null;
+    }
+  }
+  confirmOk.onclick = () => { if(confirmCallbackYes) confirmCallbackYes(); };
+  confirmCancel.onclick = () => { hideCopyConfirm(); };
+  confirmOverlay.onclick = (e) => { if(e.target === confirmOverlay) hideCopyConfirm(); };
+  window.addEventListener('keydown', (e) => {
+    if (confirmOverlay.style.display === 'flex') {
+      if (e.key === 'Escape') { e.preventDefault(); hideCopyConfirm(); }
+      else if (e.key === 'Enter') { e.preventDefault(); if(confirmCallbackYes) confirmCallbackYes(); }
+    }
+  });
+
+  async function saveCurrentImage() {
+    if(!img.src) {
+      showToast('暂无图片可保存');
+      return;
+    }
+    try {
+      const imageBlob = await fetchImageAsBlob(img.src);
+      downloadBlob(imageBlob);
+      stats.saveCount++;
+      updateStatsUI();
+      showToast('图片已保存');
+    } catch {
+      saveImageViaCanvas();
+    }
+  }
+  async function fetchImageAsBlob(url) {
+    const resp = await fetch(url, { mode: 'cors' });
+    if(!resp.ok) throw new Error('网络错误');
+    return await resp.blob();
+  }
+  function downloadBlob(blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'nsfwall-image-' + Date.now() + '.jpg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+  function saveImageViaCanvas(){
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const tempImg = new Image();
+    tempImg.crossOrigin = 'anonymous';
+    tempImg.src = img.src;
+    tempImg.onload = () => {
+      canvas.width = tempImg.naturalWidth;
+      canvas.height = tempImg.naturalHeight;
+      ctx.drawImage(tempImg, 0, 0);
+      canvas.toBlob(blob => {
+        if(blob){
+          downloadBlob(blob);
+          stats.saveCount++;
+          updateStatsUI();
+          showToast('图片保存成功（转码）');
+        } else {
+          showToast('图片保存失败');
+        }
+      }, 'image/png');
+    };
+    tempImg.onerror = () => {
+      showToast('跨域转码保存失败');
+    };
+  }
+
+  function shareCurrentImage() {
+    if(!img.src){
+      showToast('暂无图片可分享');
+      return;
+    }
+    stats.shareCount++;
+    updateStatsUI();
+
+    if(navigator.share) {
+      navigator.share({
+        title: 'NSFWall随机壁纸',
+        text: '看看我刚刚获得的随机壁纸',
+        url: img.src
+      }).catch(() => showToast('分享未完成'));
+    } else {
+      copyTextToClipboard(img.src);
+      showToast('不支持直接分享，已复制链接');
+    }
+  }
+
+  function openImageLocally() {
+    if(!img.src) {
+      showToast('暂无图片可打开');
+      return;
+    }
+    window.open(img.src, '_blank', 'noopener,noreferrer');
+    showToast('已在新标签页打开图片');
+  }
+
+  function printCurrentImage() {
+    if(!img.src){
+      showToast('暂无图片可打印');
+      return;
+    }
+    const printWindow = window.open('', '_blank');
+    if(!printWindow){
+      showToast('弹窗被拦截，请允许弹窗...');
+      return;
+    }
+    printWindow.document.write(`
+      <html>
+      <head><title>打印图片</title><style>body{margin:0;display:flex;justify-content:center;align-items:center;height:100vh;}</style></head>
+      <body>
+        <img src="${img.src}" style="max-width:100%; max-height:100vh;" alt="打印图片"/>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.onload = () => {
+      printWindow.print();
+      // printWindow.close();
+    };
+  }
+
+  function updateStatsUI() {
+    statStartTime.textContent = `开始时间: ${stats.startTime.toLocaleString()}`;
+    statLoadedImages.textContent = `已加载图片数: ${stats.loadedImages.size}`;
+    statRefreshCount.textContent = `刷新次数: ${stats.refreshCount}`;
+    statShareCount.textContent = `分享次数: ${stats.shareCount}`;
+    statCopyCount.textContent = `复制次数: ${stats.copyCount}`;
+    statSaveCount.textContent = `保存次数: ${stats.saveCount}`;
+  }
+  function toggleStatsPanel() {
+    if(statsPanel.style.display === 'block') {
+      statsPanel.style.display = 'none';
+    } else {
+      updateStatsUI();
+      statsPanel.style.display = 'block';
+    }
+  }
+
+  function toggleImageVisibility() {
+    if (!img.src || currentView !== 'imagepage') return;
+    imgVisible = !imgVisible;
+    lastImageVisible = imgVisible;
+    img.style.display = imgVisible ? 'block' : 'none';
+  }
+
+  let uiButtonsVisible = true;
+  function toggleUIButtonsVisibility() {
+    uiButtonsVisible = !uiButtonsVisible;
+    document.querySelector('.btn-group').style.display = uiButtonsVisible ? 'flex' : 'none';
+    showToast(uiButtonsVisible ? '显示功能区' : '隐藏功能区，沉浸体验');
+  }
+
+  function toggleHomePage() {
+    if (currentView === 'homepage') {
+      if (!hasLoadedImage) {
+        showToast('已在主页');
+        return;
+      }
+      windowsIcon.style.display = 'none';
+      img.style.display = lastImageVisible ? 'block' : 'none';
+      imgVisible = lastImageVisible;
+      bgBlur.style.display = 'block';
+      bgBlur.style.opacity = '0.3';
+      currentView = 'imagepage';
+    } else if (currentView === 'imagepage') {
+      lastImageVisible = imgVisible;
+      img.style.display = 'none';
+      imgVisible = false;
+      bgBlur.style.opacity = '0';
+      setTimeout(() => {
+        if (currentView === 'homepage') bgBlur.style.display = 'none';
+      }, 300);
+      windowsIcon.style.display = 'grid';
+      currentView = 'homepage';
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    initSourceBlocks();
+
+    btnRefresh.addEventListener('click', refreshImage);
+    btnSave.addEventListener('click', saveCurrentImage);
+    btnShare.addEventListener('click', shareCurrentImage);
+    btnPrint.addEventListener('click', printCurrentImage);
+    btnOpen.addEventListener('click', openImageLocally);
+    btnStatsToggle.addEventListener('click', toggleStatsPanel);
+
+    btnTimeBtn.addEventListener('click', toggleImageVisibility);
+    btnHome.addEventListener('click', toggleHomePage);
+
+    setupTimeUpdater();
+    document.addEventListener('visibilitychange', () => {
+      if(document.hidden){
+        if(timeUpdateTimer) clearInterval(timeUpdateTimer);
+      } else {
+        setupTimeUpdater();
+      }
+    });
+
+    btnCopyImg.addEventListener('click', () => {
+      if(!img.src){
+        showToast('暂无图片可复制');
+        return;
+      }
+      copyTextToClipboard(img.src);
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.isComposing) return;
+      if(confirmOverlay.style.display === 'flex') return;
+      switch(e.key.toLowerCase()){
+        case 'r':
+          e.preventDefault();
+          refreshImage();
+          break;
+        case 'h':
+          e.preventDefault();
+          toggleHomePage();
+          break;
+        case 't':
+          e.preventDefault();
+          toggleImageVisibility();
+          break;
+        case 's':
+          e.preventDefault();
+          saveCurrentImage();
+          break;
+        case 'c':
+          e.preventDefault();
+          shareCurrentImage();
+          break;
+        case 'v':
+          e.preventDefault();
+          if(img.src){
+            copyTextToClipboard(img.src);
+          } else {
+            showToast('无图片链接');
+          }
+          break;
+        case 'o':
+          e.preventDefault();
+          openImageLocally();
+          break;
+        case 'p':
+          e.preventDefault();
+          toggleStatsPanel();
+          break;
+        case 'k':
+          e.preventDefault();
+          toggleUIButtonsVisibility();
+          break;
+        case 'd':
+          e.preventDefault();
+          printCurrentImage();
+          break;
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
