@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <title>NSFWall – Not Safe for Wallpaper Lite</title>
+    
+    <!-- 字体导入 -->
+    <style>
+        @import url("https://fontsapi.zeoseven.com/488/main/result.css");
+        
+        /* 全局字体设置 - 统一使用STDongGuanTi */
+        * {
+            font-family: "STDongGuanTi", dongguanti !important;
+            font-weight: normal;
+        }
+    </style>
+    
+    <!-- 主样式 -->
+    <style>
+        /* 基础样式 */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            overflow: hidden;
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 主容器 */
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 背景模糊效果 */
+        #bg-blur {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            filter: blur(24px);
+            transform: scale(1.1);
+            opacity: 0.3;
+            z-index: 0;
+            pointer-events: none;
+            user-select: none;
+            transition: opacity 0.5s ease;
+            display: none;
+        }
+        
+        /* 图片包装器 */
+        #image-wrapper {
+            position: relative;
+            z-index: 2;
+            height: 100vh;
+            max-width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 主图片 */
+        #img {
+            max-width: 100vw;
+            max-height: 100vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.37), 0 2px 4px rgba(0,0,0,0.2);
+            user-select: none;
+            pointer-events: auto;
+            transition: opacity 0.35s ease;
+            background: transparent;
+            display: none;
+        }
+        
+        /* 进度条容器 */
+        #progress-container {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 320px;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.6);
+            overflow: hidden;
+            user-select: none;
+            display: none;
+        }
+        
+        /* 进度条 */
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #0078D7, #00BCF2);
+            border-radius: 3px 0 0 3px;
+            transition: width 0.15s ease-out;
+        }
+        
+        /* 进度文本 */
+        #progress-text {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #F1707A;
+            font-weight: 600;
+            font-size: 14px;
+            user-select: none;
+            display: none;
+            z-index: 10;
+        }
+        
+        /* 源选择图标区域 */
+        #windows-icon {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: repeat(4, 70px);
+            grid-gap: 16px;
+            padding: 16px;
+            justify-content: center;
+            align-items: center;
+            perspective: 800px;
+            user-select: none;
+        }
+        
+        /* 源选择块 */
+        .src-block {
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            box-shadow: 0 12px 18px rgba(0,0,0,0.15), inset 0 2px 6px rgba(255, 255, 255, 0.3);
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            text-align: center;
+            user-select: none;
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+        
+        /* 源选择块浮动动画 */
+        @keyframes floatBlock {
+            0%, 100% {
+                transform: translateZ(0) translateY(0);
+                box-shadow: 0 12px 18px rgba(0,0,0,0.15), inset 0 2px 6px rgba(255, 255, 255, 0.3);
+            }
+            50% {
+                transform: translateZ(8px) translateY(-7px);
+                box-shadow: 0 22px 28px rgba(0,0,0,0.25), inset 0 6px 12px rgba(255, 255, 255, 0.5);
+            }
+        }
+        
+        /* 为每个源块设置不同的动画延迟 */
+        .src-block:nth-child(1) { animation: floatBlock 4s ease-in-out infinite alternate; animation-delay: 0s; }
+        .src-block:nth-child(2) { animation: floatBlock 4.5s ease-in-out infinite alternate; animation-delay: 0.15s; }
+        .src-block:nth-child(3) { animation: floatBlock 5s ease-in-out infinite alternate; animation-delay: 0.3s; }
+        .src-block:nth-child(4) { animation: floatBlock 5.5s ease-in-out infinite alternate; animation-delay: 0.45s; }
+        .src-block:nth-child(5) { animation: floatBlock 6s ease-in-out infinite alternate; animation-delay: 0.6s; }
+        .src-block:nth-child(6) { animation: floatBlock 6.5s ease-in-out infinite alternate; animation-delay: 0.75s; }
+        .src-block:nth-child(7) { animation: floatBlock 7s ease-in-out infinite alternate; animation-delay: 0.9s; }
+        .src-block:nth-child(8) { animation: floatBlock 7.5s ease-in-out infinite alternate; animation-delay: 1.05s; }
+        
+        /* 源选择块悬停效果 */
+        .src-block:hover, .src-block:focus-visible {
+            box-shadow: 0 24px 32px rgba(0,0,0,0.3), inset 0 5px 10px rgba(255, 255, 255, 0.4);
+            transform: translateY(-6px) translateZ(12px) scale(1.1);
+            outline: none;
+        }
+        
+        /* 选中的源块标记 */
+        .src-block.selected::after {
+            content: "√";
+            position: absolute;
+            right: 6px;
+            bottom: 6px;
+            color: #0c0;
+            font-size: 18px;
+            font-weight: 900;
+            text-shadow: 0 0 3px #000;
+            pointer-events: none;
+            user-select: none;
+        }
+        
+        /* 按钮样式 */
+        button {
+            font-weight: 600;
+            font-size: 16px;
+            color: #0078D7;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.1), 0 2px 4px 0 rgba(0,0,0,0.15);
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+            backdrop-filter: blur(12px);
+            z-index: 10;
+            text-align: center;
+            line-height: normal;
+            min-height: 40px;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 24px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* 按钮悬停效果 */
+        button:hover, button:focus-visible {
+            background: rgba(0, 120, 215, 0.15);
+            color: #000;
+            box-shadow: 0 0 8px 2px rgba(0, 120, 215, 0.6);
+            outline: none;
+        }
+        
+        /* 时间显示 */
+        #btn-time span {
+            user-select: all;
+            width: 100%;
+            display: inline-block;
+        }
+        
+        /* 图片防拖拽 */
+        img {
+            -webkit-user-drag: none;
+            user-drag: none;
+        }
+        
+        /* 提示消息 */
+        #toast {
+            position: fixed;
+            top: 178px;
+            right: 16px;
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            user-select: none;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+        
+        #toast.show {
+            opacity: 1;
+        }
+        
+        /* 确认对话框 */
+        #confirm-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        
+        #confirm-box {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px 28px;
+            max-width: 320px;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.25);
+            text-align: center;
+            font-weight: 600;
+            color: #0078D7;
+            user-select: none;
+        }
+        
+        #confirm-msg {
+            margin-bottom: 20px;
+            font-size: 16px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        #confirm-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        #confirm-buttons button {
+            flex: 1;
+            min-width: 80px;
+            font-weight: 700;
+            font-size: 14px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.25s ease;
+            color: #fff;
+        }
+        
+        #confirm-ok {
+            background: #0078D7;
+        }
+        
+        #confirm-ok:hover, #confirm-ok:focus {
+            background: #005EA1;
+            outline: none;
+        }
+        
+        #confirm-cancel {
+            background: #888;
+        }
+        
+        #confirm-cancel:hover, #confirm-cancel:focus {
+            background: #555;
+            outline: none;
+        }
+        
+        /* 功能区 */
+        #function-container {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 1000;
+            display: flex;
+            align-items: flex-start;
+            flex-direction: row;
+            user-select: none;
+        }
+        
+        #function-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: rgba(255,255,255,0);
+            border-radius: 8px;
+            padding: 8px 8px 8px 16px;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.5);
+            backdrop-filter: blur(12px);
+            max-width: 180px;
+            transition: opacity 0.25s ease;
+        }
+        
+        #toggle-button {
+            width: 32px;
+            height: 40px;
+            margin-left: 6px;
+            background: rgba(255, 255, 255, 0);
+            border-radius: 8px;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 2px 4px 0 rgba(0,0,0,0.5);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.25s ease, box-shadow 0.25s ease;
+            flex-shrink: 0;
+        }
+        
+        #toggle-button:hover, #toggle-button:focus {
+            background: rgba(0, 120, 215, 0.15);
+            outline: none;
+        }
+        
+        #toggle-arrow {
+            border: solid #0078D7;
+            border-width: 0 2.5px 2.5px 0;
+            display: inline-block;
+            padding: 5px;
+            transform: rotate(-45deg);
+            transition: transform 0.25s ease;
+        }
+        
+        #function-container.collapsed #toggle-arrow {
+            transform: rotate(135deg);
+        }
+        
+        #function-container.collapsed #function-buttons {
+            opacity: 0;
+            pointer-events: none;
+            width: 0;
+            padding: 0;
+            margin: 0;
+        }
+        
+        #function-container.collapsed {
+            right: 2px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 主容器 -->
+    <div id="container" role="main" aria-label="桌面壁纸展示区">
+        <!-- 源选择区域 -->
+        <div id="windows-icon" aria-hidden="true" role="img" aria-label="图片源选择" style="display:grid;"></div>
+        
+        <!-- 背景模糊图片 -->
+        <img id="bg-blur" aria-hidden="true" alt="">
+        
+        <!-- 图片展示区域 -->
+        <div id="image-wrapper">
+            <img id="img" alt="随机桌面壁纸">
+            <div id="progress-container" aria-hidden="true">
+                <div id="progress-bar"></div>
+            </div>
+            <div id="progress-text" role="alert"></div>
+        </div>
+        
+        <!-- 功能区 -->
+        <div id="function-container" aria-label="功能区" aria-expanded="true">
+            <div id="function-buttons">
+                <button id="btn-refresh" aria-label="刷新壁纸" type="button">刷新壁纸</button>
+                <button id="btn-home" aria-label="返回主页" type="button" tabindex="-1">返回主页</button>
+                <button id="btn-time" aria-label="当前时间" type="button" tabindex="-1">
+                    <span>--:--:--</span>
+                </button>
+            </div>
+            <button id="toggle-button" aria-label="展开/收起功能区" type="button" tabindex="0">
+                <i id="toggle-arrow" aria-hidden="true"></i>
+            </button>
+        </div>
+        
+        <!-- 提示消息 -->
+        <div id="toast" role="alert" aria-live="assertive">已在主页</div>
+        
+        <!-- 确认对话框 -->
+        <div id="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-msg">
+            <div id="confirm-box">
+                <div id="confirm-msg"></div>
+                <div id="confirm-buttons">
+                    <button id="confirm-ok" type="button">确认</button>
+                    <button id="confirm-cancel" type="button">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript代码 -->
+    <script>
+        (() => {
+            // 图片源配置
+            const sources = [
+                {url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=2', label: 'I', color: 'hsl(205, 90%, 50%)'},
+                {url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=4', label: 'II', color: 'hsl(120, 75%, 42%)'},
+                {url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=极品美女图片', label: 'III', color: 'hsl(330, 85%, 45%)'},
+                {url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=日本COS中国COS', label: 'IV', color: 'hsl(40, 86%, 56%)'},
+                {url: 'https://api.lolimi.cn/API/meizi/api.php?type=image', label: 'V', color: 'hsl(280, 70%, 53%)'},
+                {url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=少女写真6', label: 'VI', color: 'hsl(15, 70%, 48%)'},
+                {url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=死库水萝莉', label: 'VII', color: 'hsl(190, 80%, 55%)'},
+                {url: 'https://api.lolimi.cn/API/meizi/api.php?type=image', label: 'VIII', color: 'hsl(280, 70%, 53%)'}
+            ];
+            
+            // DOM元素引用
+            const windowsIcon = document.getElementById('windows-icon');
+            const bgBlur = document.getElementById('bg-blur');
+            const img = document.getElementById('img');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const toast = document.getElementById('toast');
+            const confirmOverlay = document.getElementById('confirm-overlay');
+            const confirmMsg = document.getElementById('confirm-msg');
+            const confirmOk = document.getElementById('confirm-ok');
+            const confirmCancel = document.getElementById('confirm-cancel');
+            const functionContainer = document.getElementById('function-container');
+            const functionButtonsDiv = document.getElementById('function-buttons');
+            const toggleButton = document.getElementById('toggle-button');
+            const toggleArrow = document.getElementById('toggle-arrow');
+            const btnRefresh = document.getElementById('btn-refresh');
+            const btnHome = document.getElementById('btn-home');
+            const btnTimeBtn = document.getElementById('btn-time');
+            const btnTime = btnTimeBtn.querySelector('span');
+            
+            // 状态变量
+            let currentSourceIndex = null;
+            let currentImageUrl = '';
+            let imgVisible = true;
+            let hasLoadedImage = false;
+            let currentView = 'homepage';
+            let lastImageVisible = true;
+            
+            /**
+             * 更新选中的源块
+             */
+            function updateSelectedBlock() {
+                windowsIcon.querySelectorAll('.src-block').forEach((block, i) => {
+                    block.classList.toggle('selected', i === currentSourceIndex);
+                });
+            }
+            
+            /**
+             * 初始化源选择块
+             */
+            function initSourceBlocks() {
+                windowsIcon.innerHTML = '';
+                
+                sources.forEach(({label, color}, i) => {
+                    const block = document.createElement('div');
+                    block.className = 'src-block';
+                    block.style.backgroundColor = color;
+                    block.setAttribute('role', 'button');
+                    block.setAttribute('tabindex', '0');
+                    block.setAttribute('aria-label', '图片源 ' + label);
+                    block.dataset.index = i;
+                    
+                    block.innerHTML = `
+                        <div style="font-size:20px;line-height:1;">${label}</div>
+                        <div style="font-size:11px;line-height:1.2;margin-top:4px;">源</div>
+                    `;
+                    
+                    // 点击事件
+                    block.addEventListener('click', () => {
+                        if (currentSourceIndex !== i) {
+                            currentSourceIndex = i;
+                            updateSelectedBlock();
+                            refreshImage();
+                        }
+                    });
+                    
+                    // 键盘事件
+                    block.addEventListener('keydown', e => {
+                        if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            block.click();
+                        }
+                    });
+                    
+                    // 右键菜单事件
+                    block.addEventListener('contextmenu', e => {
+                        e.preventDefault();
+                        showCopyConfirm(e.pageX, e.pageY, i);
+                    });
+                    
+                    windowsIcon.appendChild(block);
+                });
+                
+                updateSelectedBlock();
+            }
+            
+            /**
+             * 获取图片边缘平均颜色
+             * @param {HTMLImageElement} image - 图片元素
+             * @param {number} edgeSize - 边缘大小
+             * @returns {Promise<number[]>} RGB颜色数组
+             */
+            function getAverageEdgeColor(image, edgeSize = 30) {
+                return new Promise(resolve => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = image.naturalWidth;
+                        canvas.height = image.naturalHeight;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(image, 0, 0);
+                        
+                        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                        let rSum = 0, gSum = 0, bSum = 0, count = 0;
+                        const w = canvas.width, h = canvas.height;
+                        
+                        for (let y = 0; y < h; y++) {
+                            for (let x = 0; x < w; x++) {
+                                if (y < edgeSize || y >= h - edgeSize || x < edgeSize || x >= w - edgeSize) {
+                                    const idx = (y * w + x) * 4;
+                                    if (data[idx + 3] > 128) {
+                                        rSum += data[idx];
+                                        gSum += data[idx + 1];
+                                        bSum += data[idx + 2];
+                                        count++;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        resolve(count ? [Math.round(rSum / count), Math.round(gSum / count), Math.round(bSum / count)] : [0, 0, 0]);
+                    } catch {
+                        resolve([0, 0, 0]);
+                    }
+                });
+            }
+            
+            /**
+             * 将RGB数组转换为CSS颜色字符串
+             * @param {number[]} rgb - RGB颜色数组
+             * @returns {string} CSS颜色字符串
+             */
+            function rgbToCss(rgb) {
+                return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+            }
+            
+            /**
+             * 模拟进度条加载
+             * @param {HTMLImageElement} imgEl - 图片元素
+             * @param {HTMLElement} barEl - 进度条元素
+             * @param {HTMLElement} containerEl - 进度条容器元素
+             * @param {Function} onLoad - 加载完成回调
+             * @param {Function} onError - 加载失败回调
+             */
+            function simulateProgressLoading(imgEl, barEl, containerEl, onLoad, onError) {
+                let p = 0;
+                barEl.style.width = '0%';
+                containerEl.style.display = 'block';
+                progressText.style.display = 'none';
+                
+                const timer = setInterval(() => {
+                    if (p < 90) {
+                        p += 10;
+                        barEl.style.width = p + '%';
+                    }
+                }, 200);
+                
+                const cleanup = () => {
+                    clearInterval(timer);
+                    imgEl.onload = null;
+                    imgEl.onerror = null;
+                };
+                
+                imgEl.onload = () => {
+                    cleanup();
+                    barEl.style.width = '100%';
+                    setTimeout(() => containerEl.style.display = 'none', 300);
+                    progressText.style.display = 'none';
+                    imgEl.style.opacity = '1';
+                    onLoad && onLoad();
+                };
+                
+                imgEl.onerror = () => {
+                    cleanup();
+                    containerEl.style.display = 'none';
+                    progressText.textContent = '加载失败，请刷新重试';
+                    progressText.style.display = 'block';
+                    imgEl.style.opacity = '0';
+                    onError && onError();
+                };
+            }
+            
+            /**
+             * 刷新图片
+             */
+            async function refreshImage() {
+                if (currentSourceIndex === null) {
+                    showToast('请先选择图片源');
+                    return;
+                }
+                
+                let sourceUrl = sources[currentSourceIndex].url;
+                currentImageUrl = sourceUrl + (sourceUrl.includes('?') ? '&' : '?') + '_ts=' + Date.now();
+                
+                // 更新UI状态
+                windowsIcon.style.display = 'none';
+                img.style.display = 'block';
+                imgVisible = true;
+                lastImageVisible = true;
+                bgBlur.style.display = 'block';
+                bgBlur.style.opacity = '0.3';
+                currentView = 'imagepage';
+                hasLoadedImage = true;
+                progressText.style.display = 'none';
+                img.style.opacity = '0';
+                
+                // 模拟加载进度
+                simulateProgressLoading(img, progressBar, progressContainer, async () => {
+                    try {
+                        const avgColor = await getAverageEdgeColor(img, 40);
+                        document.body.style.backgroundColor = rgbToCss(avgColor);
+                    } catch {
+                        document.body.style.backgroundColor = '#fff';
+                    }
+                    
+                    bgBlur.src = img.src;
+                    bgBlur.onload = () => {
+                        bgBlur.style.opacity = '0.3';
+                    };
+                }, () => {
+                    // 加载失败处理
+                    windowsIcon.style.display = 'grid';
+                    img.style.display = 'none';
+                    bgBlur.style.opacity = '0';
+                    bgBlur.style.display = 'none';
+                    bgBlur.src = '';
+                    document.body.style.backgroundColor = '#fff';
+                    currentView = 'homepage';
+                    hasLoadedImage = false;
+                    imgVisible = false;
+                    lastImageVisible = false;
+                });
+                
+                img.src = currentImageUrl;
+            }
+            
+            /**
+             * 格式化时间
+             * @param {Date} d - 日期对象
+             * @returns {string} 格式化后的时间字符串
+             */
+            function formatTime(d) {
+                const p = n => n < 10 ? '0' + n : n;
+                return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+            }
+            
+            /**
+             * 更新时间显示
+             */
+            function updateTime() {
+                btnTime.textContent = formatTime(new Date());
+            }
+            
+            let toastTimer = null;
+            
+            /**
+             * 显示提示消息
+             * @param {string} text - 提示文本
+             */
+            function showToast(text) {
+                toast.textContent = text;
+                toast.classList.add('show');
+                
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+            }
+            
+            let confirmCallbackYes = null;
+            
+            /**
+             * 显示复制确认对话框
+             * @param {number} x - X坐标
+             * @param {number} y - Y坐标
+             * @param {number} i - 源索引
+             */
+            function showCopyConfirm(x, y, i) {
+                confirmOverlay.style.display = 'flex';
+                confirmMsg.textContent = `是否复制此图片源的地址？\n【${sources[i].label}】: ${sources[i].url}`;
+                confirmOverlay.style.top = y + 'px';
+                confirmOverlay.style.left = x + 'px';
+                confirmOverlay.style.position = 'absolute';
+                
+                confirmCallbackYes = () => {
+                    copyTextToClipboard(sources[i].url);
+                    hideCopyConfirm();
+                    showToast('已复制图片源地址');
+                };
+                
+                confirmOk.focus();
+            }
+            
+            /**
+             * 隐藏复制确认对话框
+             */
+            function hideCopyConfirm() {
+                confirmOverlay.style.display = 'none';
+                confirmCallbackYes = null;
+            }
+            
+            // 确认对话框按钮事件
+            confirmOk.onclick = () => {
+                if (confirmCallbackYes) confirmCallbackYes();
+            };
+            
+            confirmCancel.onclick = hideCopyConfirm;
+            
+            confirmOverlay.onclick = e => {
+                if (e.target === confirmOverlay) hideCopyConfirm();
+            };
+            
+            // 确认对话框键盘事件
+            window.addEventListener('keydown', e => {
+                if (confirmOverlay.style.display === 'flex') {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        hideCopyConfirm();
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (confirmCallbackYes) confirmCallbackYes();
+                    }
+                }
+            });
+            
+            /**
+             * 复制文本到剪贴板
+             * @param {string} t - 要复制的文本
+             */
+            function copyTextToClipboard(t) {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(t).catch(() => fallbackCopyText(t));
+                } else {
+                    fallbackCopyText(t);
+                }
+            }
+            
+            /**
+             * 回退复制方法
+             * @param {string} t - 要复制的文本
+             */
+            function fallbackCopyText(t) {
+                const ta = document.createElement('textarea');
+                ta.value = t;
+                document.body.appendChild(ta);
+                ta.select();
+                
+                try {
+                    document.execCommand('copy');
+                } catch {}
+                
+                document.body.removeChild(ta);
+            }
+            
+            /**
+             * 统一按钮宽度
+             */
+            function unifyButtonWidth() {
+                const w = btnTimeBtn.getBoundingClientRect().width;
+                btnRefresh.style.width = w + 'px';
+                btnHome.style.width = w + 'px';
+            }
+            
+            // 初始化
+            window.addEventListener('DOMContentLoaded', () => {
+                initSourceBlocks();
+                
+                // 按钮事件
+                btnRefresh.addEventListener('click', refreshImage);
+                
+                updateSelectedBlock();
+                document.body.style.backgroundColor = '#fff';
+                
+                // 时间更新
+                updateTime();
+                setInterval(updateTime, 1000);
+                
+                // 时间按钮点击事件
+                btnTimeBtn.addEventListener('click', () => {
+                    if (!img.src || currentView !== 'imagepage') return;
+                    
+                    imgVisible = !imgVisible;
+                    lastImageVisible = imgVisible;
+                    img.style.display = imgVisible ? 'block' : 'none';
+                });
+                
+                // 主页按钮点击事件
+                btnHome.addEventListener('click', () => {
+                    if (currentView === 'homepage') {
+                        if (!hasLoadedImage) {
+                            showToast('已在主页');
+                            return;
+                        }
+                        
+                        windowsIcon.style.display = 'none';
+                        img.style.display = lastImageVisible ? 'block' : 'none';
+                        imgVisible = lastImageVisible;
+                        bgBlur.style.display = 'block';
+                        bgBlur.style.opacity = '0.3';
+                        currentView = 'imagepage';
+                    } else if (currentView === 'imagepage') {
+                        lastImageVisible = imgVisible;
+                        img.style.display = 'none';
+                        imgVisible = false;
+                        bgBlur.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            if (currentView === 'homepage') bgBlur.style.display = 'none';
+                        }, 300);
+                        
+                        windowsIcon.style.display = 'grid';
+                        currentView = 'homepage';
+                    }
+                });
+                
+                // 统一按钮宽度
+                unifyButtonWidth();
+                window.addEventListener('resize', unifyButtonWidth);
+                
+                // 功能区折叠/展开
+                let fnVisible = true;
+                
+                toggleButton.addEventListener('click', () => {
+                    fnVisible = !fnVisible;
+                    
+                    if (fnVisible) {
+                        functionContainer.classList.remove('collapsed');
+                        functionContainer.setAttribute('aria-expanded', 'true');
+                    } else {
+                        functionContainer.classList.add('collapsed');
+                        functionContainer.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                
+                // 全局键盘快捷键
+                window.addEventListener('keydown', e => {
+                    if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.isComposing) return;
+                    
+                    if (e.key === 'k') {
+                        e.preventDefault();
+                        fnVisible = !fnVisible;
+                        
+                        if (fnVisible) {
+                            functionContainer.classList.remove('collapsed');
+                            functionContainer.setAttribute('aria-expanded', 'true');
+                        } else {
+                            functionContainer.classList.add('collapsed');
+                            functionContainer.setAttribute('aria-expanded', 'false');
+                        }
+                        
+                        showToast(`功能区已${fnVisible ? '显示' : '隐藏'}`);
+                        return;
+                    }
+                    
+                    switch (e.key) {
+                        case 'r':
+                            e.preventDefault();
+                            refreshImage();
+                            break;
+                        case 'h':
+                            e.preventDefault();
+                            btnHome.click();
+                            break;
+                        case 't':
+                            e.preventDefault();
+                            btnTimeBtn.click();
+                            break;
+                    }
+                });
+            });
+        })();
+    </script>
+</body>
+</html>
