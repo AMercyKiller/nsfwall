@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <title>NSFWall – Lite Edition (Glass Dock UI v13.1)</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com/">
+    <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+
+
+    <style>
+        /* 1. 基础样式和主题变量 - 适配 Glassmorphism */
+        :root {
+            /* 浅色模式变量 */
+            --bg-base: #f0f2f5; 
+            --text-color: #111;
+            --glass-bg: rgba(255, 255, 255, 0.2); /* 核心玻璃背景 */
+            --glass-border: rgba(255, 255, 255, 0.4); /* 亮边框 */
+            --border-color: rgba(0, 0, 0, 0.05); /* 深色边框（用于收敛） */
+            --accent-color: #1a73e8; /* Google 蓝 */
+            --shadow-color: rgba(0, 0, 0, 0.15);
+            --radius-large: 20px; 
+            --radius-small: 10px;
+            --transition-speed: 0.3s ease;
+            --dock-height: 50px; /* Dock 按钮基础高度 */
+            --src-block-size: 40px; 
+            --dock-bottom-offset: 60px; /* Dock 距离底部的距离 */
+        }
+
+        /* 深色模式覆盖 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-base: #121212;
+                --text-color: #f0f0f0;
+                --glass-bg: rgba(255, 255, 255, 0.05); 
+                --glass-border: rgba(255, 255, 255, 0.1); 
+                --border-color: rgba(255, 255, 255, 0.05);
+                --shadow-color: rgba(0, 0, 0, 0.4);
+            }
+        }
+
+        /* 2. 全局和布局样式 */
+        * {
+            font-family: 'Inter', sans-serif !important; 
+            font-weight: 400;
+            box-sizing: border-box;
+            font-style: normal;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-base);
+            color: var(--text-color);
+            overflow-x: hidden; 
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.5s ease;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            min-height: 100vh;
+        }
+
+        /* 3. 背景和主图片 (保留圆角) */
+        #bg-blur {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            filter: blur(40px) brightness(0.7);
+            transform: scale(1.05);
+            opacity: 0;
+            z-index: 0;
+            transition: opacity 0.8s ease;
+            border-radius: var(--radius-large); 
+        }
+
+        #img {
+            position: fixed;
+            top: 0;
+            left: 0;
+            max-width: 100vw;
+            max-height: 100vh;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            user-select: none;
+            pointer-events: auto;
+            opacity: 0;
+            z-index: 1;
+            transition: opacity 0.5s ease;
+            display: none;
+            border-radius: var(--radius-large); 
+        }
+        
+        /* 4. 信息模块：时钟+天气+一言 */
+        #info-widget {
+            position: fixed;
+            z-index: 10;
+            padding: 25px 35px;
+            max-width: 450px;
+            min-width: 320px;
+            text-align: center;
+            color: var(--text-color);
+            text-shadow: 0 1px 4px var(--shadow-color);
+            
+            background: var(--glass-bg); 
+            backdrop-filter: blur(25px) saturate(180%);
+            border-radius: var(--radius-large);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 30px var(--shadow-color);
+            
+            cursor: move; /* 启用拖动 */
+            transform: translate(-50%, -50%); 
+            top: 50%; 
+            left: 50%; 
+            transition: opacity var(--transition-speed), background 0.5s ease, backdrop-filter 0.5s ease;
+            will-change: top, left, transform; /* 优化拖动性能 */
+            
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+
+        }
+        
+        #info-widget[data-visible="false"] {
+             display: none !important;
+        }
+
+        #clock-area {
+            font-size: 4.2em;
+            font-weight: 700;
+            letter-spacing: -3px;
+            line-height: 1;
+            font-variant-numeric: tabular-nums; 
+            font-feature-settings: "tnum"; 
+        }
+        
+        #weather-area {
+            width: 100%; 
+            padding: 10px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #weather-display {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 1.3em; 
+            font-weight: 700;
+            justify-content: center;
+        }
+
+        #weather-icon {
+            font-size: 1.8em; 
+        }
+        
+        #hitokoto-area {
+            text-align: center;
+            font-size: 1em; 
+            flex-grow: 1; 
+            flex-direction: column;
+            justify-content: center;
+            width: 100%;
+        }
+
+        #hitokoto-content {
+            font-style: italic;
+            margin-bottom: 8px;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        #hitokoto-meta {
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+
+
+        /* 5. 底部 Dock 容器 (新增隐藏/显示状态) */
+        #bottom-dock-container {
+            position: fixed;
+            bottom: calc(var(--dock-bottom-offset) + var(--dock-height) + 10px); 
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            
+            display: flex;
+            align-items: center;
+            gap: 15px; 
+            
+            padding: 10px 20px; 
+            border-radius: 35px; 
+            
+            background: var(--glass-bg); 
+            backdrop-filter: blur(25px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 40px var(--shadow-color);
+            
+            transition: all 0.5s ease;
+        }
+        
+        /* Dock 隐藏状态 */
+        #bottom-dock-container.hidden {
+            transform: translateX(-50%) translateY(calc(100% + var(--dock-bottom-offset)));
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* 按钮分组 */
+        .dock-group {
+            display: flex;
+            gap: 10px; 
+        }
+        
+        /* 分隔线 */
+        .dock-group-separator {
+            width: 1px;
+            height: 30px;
+            background: var(--glass-border);
+            opacity: 0.7;
+        }
+        
+        /* 玻璃按钮基准样式 (圆形) */
+        .control-button {
+            all: unset;
+            box-sizing: border-box;
+            width: var(--dock-height); 
+            height: var(--dock-height);
+            border-radius: 50%;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg); 
+            backdrop-filter: blur(15px);
+            color: var(--text-color);
+            font-size: 22px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px var(--shadow-color); 
+            transition: background var(--transition-speed), transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        .control-button:hover {
+            background: var(--glass-border); 
+            transform: translateY(-2px); 
+            box-shadow: 0 8px 20px var(--shadow-color);
+        }
+        
+        /* 6. 源选择 Popover (仿 Dock 扩展) */
+        #source-popover {
+            position: fixed;
+            bottom: calc(var(--dock-bottom-offset) + var(--dock-height) + 90px); 
+            left: 50%;
+            transform: translateX(-50%) translateY(10px); 
+            z-index: 25;
+            
+            background: var(--glass-bg); 
+            backdrop-filter: blur(30px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 5px 20px var(--shadow-color);
+            
+            border-radius: var(--radius-large);
+            padding: 15px;
+            
+            display: flex;
+            flex-direction: column; 
+            
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            min-width: 320px; 
+        }
+        
+        #source-popover.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(-50%) translateY(0); 
+        }
+
+        .popover-header {
+            font-weight: 700;
+            font-size: 1.1em;
+            text-align: center;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        #source-buttons {
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 10px; 
+            padding-top: 5px;
+        }
+
+        /* 源选择块 (src-block) - 保持圆形设计 */
+        .src-block {
+            all: unset;
+            box-sizing: border-box;
+            text-align: center;
+            width: var(--src-block-size); 
+            height: var(--src-block-size);
+            line-height: var(--src-block-size); 
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 50%; 
+            cursor: pointer;
+            
+            background: rgba(255, 255, 255, 0.1); 
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .src-block:hover {
+            background: var(--glass-border);
+            transform: scale(1.05);
+        }
+
+        .src-block.selected {
+            border: 1px solid var(--glass-border);
+            outline: 2px solid var(--accent-color);
+            outline-offset: 1px;
+            background: var(--accent-color); 
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.4);
+        }
+
+
+        /* 7. 城市选择器 (右下角卡片) */
+        #city-selector-container {
+            position: fixed;
+            right: var(--dock-bottom-offset); 
+            bottom: calc(var(--dock-bottom-offset) + var(--dock-height) + 10px); 
+            z-index: 50;
+            width: 90%;
+            max-width: 380px; 
+            height: 90%;
+            max-height: 500px; 
+            
+            background: var(--glass-bg); 
+            backdrop-filter: blur(20px) saturate(180%);
+            border-radius: var(--radius-large);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 40px var(--shadow-color);
+            padding: 20px;
+            
+            display: none; 
+            flex-direction: column;
+            gap: 15px;
+            
+            transform: translateX(100%) translateY(0); 
+            transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+        }
+        
+        #city-selector-container.visible {
+            transform: translateX(0) translateY(0); 
+            display: flex;
+        }
+
+        .selector-header {
+            font-size: 1.2em;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .selector-header button {
+            all: unset;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 5px;
+            transition: color 0.2s;
+        }
+
+        .selector-header button:hover {
+            color: var(--accent-color);
+        }
+        
+        .selector-list-wrapper {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 5px; 
+        }
+        
+        .selector-list {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 10px;
+            padding: 5px 0;
+        }
+        
+        .selector-item {
+            padding: 8px 10px;
+            background-color: rgba(255, 255, 255, 0.1); 
+            color: var(--text-color);
+            border-radius: var(--radius-small);
+            cursor: pointer;
+            transition: background-color 0.15s, transform 0.1s;
+            font-weight: 500;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .selector-item:hover {
+             background-color: var(--glass-border);
+             transform: translateY(-1px);
+        }
+        
+        /* 8. Dock 呼出按钮样式 */
+        #dock-callout-button {
+            position: fixed;
+            bottom: calc(var(--dock-bottom-offset) + var(--dock-height) + 30px);
+            left: 95%;
+            transform: translateX(-50%);
+            z-index: 15; 
+            
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        #dock-callout-button.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        /* 9. 许可模态框样式 */
+        #modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #modal-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #license-modal {
+            background: var(--bg-base);
+            color: var(--text-color);
+            padding: 30px;
+            border-radius: var(--radius-large);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        #modal-overlay.visible #license-modal {
+            transform: scale(1);
+        }
+
+        #license-modal h2 {
+            font-weight: 700;
+            font-size: 1.5em;
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        #license-modal h3 {
+            font-weight: 700;
+            font-size: 1.2em;
+            margin-top: 15px;
+            color: var(--accent-color);
+        }
+
+        #license-modal p {
+            font-size: 0.9em;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        #modal-accept-button {
+            display: block;
+            width: 80%;
+            margin: 20px auto 0;
+            padding: 10px 20px;
+            background-color: var(--accent-color);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-small);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #modal-accept-button:hover {
+            background-color: #1656b8;
+        }
+
+
+        /* 移动端适配 (更新 Dock 和 Selector) */
+        @media (max-width: 768px) {
+            
+            #info-widget {
+                padding: 20px;
+                max-width: 90vw; 
+                min-width: unset;
+                border-radius: var(--radius-large);
+            }
+            
+            #clock-area {
+                font-size: 3.2em;
+                letter-spacing: -2px;
+            }
+            
+            :root {
+                --dock-height: 44px; 
+                --src-block-size: 36px; 
+                --dock-bottom-offset: 15px;
+            }
+
+            #bottom-dock-container {
+                bottom: calc(var(--dock-bottom-offset) + var(--dock-height) + 10px);
+                padding: 8px 15px;
+                gap: 8px; 
+            }
+            
+            .dock-group-separator {
+                height: 25px;
+            }
+            
+            .control-button {
+                font-size: 18px;
+            }
+
+            #source-popover {
+                bottom: calc(var(--dock-bottom-offset) + var(--dock-height) + 30px);
+                max-width: 90vw;
+                padding: 10px;
+                min-width: unset;
+            }
+            
+            #source-buttons {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            #city-selector-container {
+                right: 5vw;
+                bottom: 5vw;
+                top: 5vw;
+                left: 5vw;
+                max-width: unset;
+                max-height: unset;
+                height: auto;
+            }
+            
+            .selector-list {
+                grid-template-columns: repeat(2, 1fr); 
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container" role="main" aria-label="桌面壁纸展示区">
+        <img id="bg-blur" aria-hidden="true" alt="">
+
+        <img id="img" alt="随机桌面壁纸">
+
+        <div id="progress-container" aria-hidden="true">
+            <div class="spinner"></div>
+            <div id="progress-text" role="alert" aria-live="assertive"></div>
+        </div>
+
+        <div id="info-widget" class="info-widget" aria-live="polite" aria-label="时钟、天气和一言" data-visible="true" style="display: flex; touch-action: none;">
+            <div id="clock-area" style="display: block;">21:57:00</div> 
+            
+            <div id="weather-area" style="display: block;">
+                <div id="weather-display">
+                    <span id="weather-icon">☁️</span>
+                    <span id="location-text">Ip</span>
+                    <span id="temp-text">12°C</span>
+                </div>
+            </div>
+            
+            <div id="hitokoto-area" style="display: block;">
+                <div id="hitokoto-content">奇怪的是，当他死去，所有人才开始爱他。</div>
+                <div id="hitokoto-meta">—— 崔雪莉 出自《哲学》</div>
+            </div>
+        </div>
+
+        <div id="bottom-dock-container" role="toolbar" aria-label="功能和图片源控制区">
+            <div id="source-group" class="dock-group">
+                <button id="btn-source-toggle" class="control-button" type="button" title="切换图片源 (H)">
+                    <i class="icon-source">🗁</i>
+                </button>
+            </div>
+            
+            <div class="dock-group-separator"></div>
+
+            <div id="info-group" class="dock-group">
+                <button id="btn-clock-toggle" class="control-button" type="button" title="隐藏时钟">
+                    <i class="icon-clock">🕐︎</i>
+                </button>
+                <button id="btn-weather-toggle" class="control-button" type="button" title="隐藏天气">
+                    <i class="icon-weather">🌤︎</i>
+                </button>
+                <button id="btn-hitokoto-toggle" class="control-button" type="button" title="隐藏一言 (U)">
+                    <i class="icon-hitokoto">§</i>
+                </button>
+            </div>
+
+            <div class="dock-group-separator"></div>
+
+            <div id="action-group" class="dock-group">
+                <button id="btn-city-search" class="control-button" type="button" title="搜索城市天气">
+                    <i class="icon-search">🗺</i>
+                </button>
+                <button id="btn-hitokoto-refresh" class="control-button" type="button" title="刷新一言/天气 (Y)">
+                    <i class="icon-quote">#︎</i>
+                </button>
+                <button id="btn-refresh" class="control-button" type="button" title="刷新壁纸 (R)">
+                    <i class="icon-refresh">↻</i>
+                </button>
+                <button id="btn-wallpaper-toggle" class="control-button" type="button" title="切换壁纸显示 (T)">
+                    <i class="icon-wallpaper-toggle">🏞</i>
+                </button>
+            </div>
+            
+            <div class="dock-group-separator"></div>
+            
+            <div id="toggle-dock-group" class="dock-group">
+                 <button id="btn-dock-toggle" class="control-button" type="button" title="收起 Dock 栏 (K)">
+                    <i class="icon-dock-toggle">⬇</i>
+                </button>
+            </div>
+        </div>
+
+        <div id="source-popover" role="dialog" aria-modal="true" aria-label="图片源选择">
+            <div class="popover-header">图片源选择</div>
+            <div id="source-buttons">
+            </div>
+        </div>
+
+        <div id="city-selector-container" role="dialog" aria-modal="true" aria-label="城市选择器" data-step="province">
+            <div class="selector-header">
+                <button id="city-back-button" title="返回省份选择" style="display: none;">←</button>
+                <span id="selector-title" style="flex-grow: 1; text-align: center;">请选择省份/直辖市</span>
+                <button id="city-close-button" title="关闭选择器">✖</button>
+            </div>
+            <div class="selector-list-wrapper">
+                <div id="province-list" class="selector-list"></div>
+                <div id="city-list" class="selector-list" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <button id="dock-callout-button" class="control-button" type="button" title="展开 Dock 栏 (K)">
+            <i class="icon-dock-callout">⬆</i>
+        </button>
+
+
+        <div id="toast" role="alert" aria-live="assertive" aria-atomic="true" style="opacity: 0; transform: translateY(10px);">源选择已收起</div>
+
+        <div id="modal-overlay">
+            <div id="license-modal">
+                <h2>使用许可、隐私条款和版权告示</h2>
+                <p>欢迎使用 NSFWall Lite Edition (Glass Dock UI v13.1)。在使用本应用之前，请仔细阅读以下条款：</p>
+                
+                <h3>使用许可</h3>
+                <p>本应用仅供个人学习和娱乐使用，不得用于任何商业用途。您使用本应用的行为即表示您同意本应用的所有功能均在您所在地的法律法规许可范围内。</p>
+                
+                <h3>隐私条款</h3>
+                <p>本应用不会收集您的任何个人身份信息。为提供天气和位置服务，应用会尝试获取您的 IP 地址，并根据 IP 地址查询您的大致地理位置信息。所有数据均通过第三方公共 API 获取，本应用不会存储这些位置信息。</p>
+                
+                <h3>版权告示</h3>
+                <p><strong>⚠️重要提示：本应用内展示的所有图片资源均来源于互联网公开 API，版权归原作者和原网站所有。开发者不拥有图片的任何版权。</strong></p>
+                <p>如任何图片内容侵犯了您的合法权益，请立即联系开发者进行删除。开发者不对第三方 API 提供的图片内容承担任何责任。</p>
+
+                <p style="color: var(--accent-color); font-weight: 600; text-align: center;">资源来源网络，如有侵权与开发者无关。</p>
+
+                <button id="modal-accept-button">我已阅读并接受</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        (function () {
+            // DOM引用
+            const bgBlur = document.getElementById('bg-blur');
+            const img = document.getElementById('img');
+            const progressContainer = document.getElementById('progress-container');
+            const toast = document.getElementById('toast');
+            
+            const infoWidget = document.getElementById('info-widget');
+            
+            // 新增/修改引用
+            const bottomDockContainer = document.getElementById('bottom-dock-container');
+            const sourcePopover = document.getElementById('source-popover'); 
+            const sourceButtons = document.getElementById('source-buttons'); 
+            const dockCalloutButton = document.getElementById('dock-callout-button'); // 新增呼出按钮引用
+
+            const clockArea = document.getElementById('clock-area');
+            const weatherArea = document.getElementById('weather-area');
+            const hitokotoArea = document.getElementById('hitokoto-area');
+            const locationText = document.getElementById('location-text');
+            const tempText = document.getElementById('temp-text');
+            const weatherIcon = document.getElementById('weather-icon');
+            const hitokotoContent = document.getElementById('hitokoto-content');
+            const hitokotoMeta = document.getElementById('hitokoto-meta');
+
+            // 按钮引用 
+            const btnRefresh = document.getElementById('btn-refresh');
+            const btnHitokotoRefresh = document.getElementById('btn-hitokoto-refresh');
+            const btnSourceToggle = document.getElementById('btn-source-toggle');
+            const btnWallpaperToggle = document.getElementById('btn-wallpaper-toggle');
+            const btnClockToggle = document.getElementById('btn-clock-toggle');
+            const btnWeatherToggle = document.getElementById('btn-weather-toggle');
+            const btnHitokotoToggle = document.getElementById('btn-hitokoto-toggle');
+            const btnCitySearch = document.getElementById('btn-city-search');
+            const btnDockToggle = document.getElementById('btn-dock-toggle'); 
+            
+            // 城市选择器 DOM 引用
+            const citySelectorContainer = document.getElementById('city-selector-container');
+            const provinceList = document.getElementById('province-list');
+            const cityList = document.getElementById('city-list');
+            const cityCloseButton = document.getElementById('city-close-button');
+            const cityBackButton = document.getElementById('city-back-button');
+            const selectorTitle = document.getElementById('selector-title');
+
+            // 模态框 DOM 引用 
+            const modalOverlay = document.getElementById('modal-overlay');
+            const modalAcceptButton = document.getElementById('modal-accept-button');
+
+            // 状态变量 
+            let currentSourceIndex = 0;
+            let hasImageLoadedSuccessfully = false;
+            let currentCity = null; 
+            let cachedGeo = null;
+            let cachedWeather = null;
+            let currentProvince = null;
+            
+            // 模块可见性状态
+            let isClockVisible = true;
+            let isWeatherVisible = true;
+            let isHitokotoVisible = true;
+            let isSourcePopoverVisible = false;
+            let isDockVisible = true; 
+            
+            // 拖动状态变量
+            let isDragging = false;
+            let dragOffsetX, dragOffsetY;
+
+            // 图片源配置 (不变)
+            const sources = [
+                { url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=2', label: 'I', color: 'hsl(205,90%,50%)' },
+                { url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=4', label: 'II', color: 'hsl(120,75%,42%)' },
+                { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=极品美女图片', label: 'III', color: 'hsl(330,85%,45%)' },
+                { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=日本COS中国COS', label: 'IV', 'color': 'hsl(40,86%,56%)' },
+                { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=少女写真5', label: 'V', color: 'hsl(280,70%,53%)' },
+                { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=少女写真6', label: 'VI', color: 'hsl(15,70%,48%)' },
+                { url: 'https://api.lolimi.cn/API/meizi/api.php?type=image', label: 'VII', color: 'hsl(190,80%,55%)' },
+                { url: 'https://api.lolimi.cn/API/meinv/api.php?type=image', label: 'VIII', color: 'hsl(280,70%,53%)' }
+            ];
+            
+            // 城市列表 (不变)
+            const CN_CITIES_FULL = {
+                 "北京": ["北京"], "上海": ["上海"], "天津": ["天津"], "重庆": ["重庆"],
+                "河北": ["石家庄", "唐山", "秦皇岛", "邯郸", "邢台", "保定", "张家口", "承德", "沧州", "廊坊", "衡水"],
+                "山西": ["太原", "大同", "阳泉", "长治", "晋城", "朔州", "晋中", "运城", "忻州", "临汾", "吕梁"],
+                "辽宁": ["沈阳", "大连", "鞍山", "抚顺", "本溪", "丹东", "锦州", "营口", "阜新", "辽阳", "盘锦", "铁岭", "朝阳", "葫芦岛"],
+                "吉林": ["长春", "吉林", "四平", "辽源", "通化", "白山", "松原", "白城", "延边"],
+                "黑龙江": ["哈尔滨", "齐齐哈尔", "鸡西", "鹤岗", "双鸭山", "大庆", "伊春", "佳木斯", "七台河", "牡丹江", "黑河", "绥化", "大兴安岭"],
+                "江苏": ["南京", "无锡", "徐州", "常州", "苏州", "南通", "连云港", "淮安", "盐城", "扬州", "镇江", "泰州", "宿迁"],
+                "浙江": ["杭州", "宁波", "温州", "嘉兴", "湖州", "绍兴", "金华", "衢州", "舟山", "台州", "丽水"],
+                "安徽": ["合肥", "芜湖", "蚌埠", "淮南", "马鞍山", "淮北", "铜陵", "安庆", "黄山", "滁州", "阜阳", "宿州", "六安", "亳州", "池州", "宣城"],
+                "福建": ["福州", "厦门", "莆田", "三明", "泉州", "漳州", "南平", "龙岩", "宁德"],
+                "江西": ["南昌", "景德镇", "萍乡", "九江", "新余", "鹰潭", "赣州", "吉安", "宜春", "抚州", "上饶"],
+                "山东": ["济南", "青岛", "淄博", "枣庄", "东营", "烟台", "潍坊", "济宁", "泰安", "威海", "日照", "临沂", "德州", "聊城", "滨州", "菏泽"],
+                "河南": ["郑州", "开封", "洛阳", "平顶山", "安阳", "鹤壁", "新乡", "焦作", "濮阳", "许昌", "漯河", "三门峡", "南阳", "商丘", "信阳", "周口", "驻马店"],
+                "湖北": ["武汉", "黄石", "十堰", "宜昌", "襄阳", "鄂州", "荆门", "孝感", "荆州", "黄冈", "咸宁", "随州", "恩施", "仙桃", "潜江", "天门", "神农架"],
+                "湖南": ["长沙", "株洲", "湘潭", "衡阳", "邵阳", "岳阳", "常德", "张家界", "益阳", "郴州", "永州", "怀化", "娄底", "湘西"],
+                "广东": ["广州", "韶关", "深圳", "珠海", "汕头", "佛山", "江门", "湛江", "茂名", "肇庆", "惠州", "梅州", "汕尾", "河源", "阳江", "清远", "东莞", "中山", "潮州", "揭阳", "云浮"],
+                "海南": ["海口", "三亚", "三沙", "儋州", "五指山", "琼海", "文昌", "万宁", "东方"],
+                "四川": ["成都", "自贡", "攀枝花", "泸州", "德阳", "绵阳", "广元", "遂宁", "内江", "乐山", "南充", "眉山", "宜宾", "广安", "达州", "雅安", "巴中", "资阳", "阿坝", "甘孜", "凉山"],
+                "贵州": ["贵阳", "六盘水", "遵义", "安顺", "毕节", "铜仁", "黔西南", "黔东南", "黔南"],
+                "云南": ["昆明", "曲靖", "玉溪", "保山", "昭通", "丽江", "普洱", "临沧", "楚雄", "红河", "文山", "西双版纳", "大理", "德宏", "怒江", "迪庆"],
+                "陕西": ["西安", "铜川", "宝鸡", "咸阳", "渭南", "延安", "汉中", "榆林", "安康", "商洛"],
+                "甘肃": ["兰州", "嘉峪关", "金昌", "白银", "天水", "武威", "张掖", "平凉", "酒泉", "庆阳", "定西", "陇南", "临夏", "甘南"],
+                "青海": ["西宁", "海东", "海北", "黄南", "海南", "果洛", "玉树", "海西"],
+                "宁夏": ["银川", "石嘴山", "吴忠", "固原", "中卫"],
+                "新疆": ["乌鲁木齐", "克拉玛依", "吐鲁番", "哈密", "昌吉", "博尔塔拉", "巴音郭楞", "阿克苏", "克孜勒苏", "喀什", "和田", "伊犁", "塔城", "阿勒泰"],
+                "内蒙古": ["呼和浩特", "包头", "乌海", "赤峰", "通辽", "鄂尔多斯", "呼伦贝尔", "巴彦淖尔", "乌兰察布", "兴安", "锡林郭勒", "阿拉善"],
+                "西藏": ["拉萨", "日喀则", "昌都", "林芝", "山南", "那曲", "阿里"],
+                "广西": ["南宁", "柳州", "桂林", "梧州", "北海", "防城港", "钦州", "贵港", "玉林", "百色", "贺州", "河池", "来宾", "崇左"],
+                "香港": ["香港"], "澳门": ["澳门"], "台湾": ["台北", "高雄", "台中", "台南", "桃园", "新北", "基隆", "新竹", "嘉义"]
+            };
+
+            let toastTimeout = null;
+            function showToast(msg) { 
+                toast.textContent = msg;
+                toast.style.opacity = '1';
+                const isMobile = window.matchMedia("(max-width: 768px)").matches;
+                if (isMobile) {
+                    toast.style.right = '50%';
+                    toast.style.transform = 'translateX(50%) translateY(0)';
+                } else {
+                    toast.style.right = '30px';
+                    toast.style.transform = 'translateY(0)';
+                }
+
+                if (toastTimeout) clearTimeout(toastTimeout);
+                toastTimeout = setTimeout(() => {
+                    toast.style.opacity = '0';
+                    if (isMobile) {
+                         toast.style.transform = 'translateX(50%) translateY(10px)';
+                    } else {
+                        toast.style.transform = 'translateY(10px)';
+                    }
+                }, 2000);
+            }
+
+            function updateInfoWidgetVisibility() {
+                const shouldHide = !isClockVisible && !isWeatherVisible && !isHitokotoVisible;
+                infoWidget.setAttribute('data-visible', !shouldHide);
+            }
+
+            function toggleModule(moduleElement, button, name, stateKey) { 
+                const isVisible = moduleElement.style.display !== 'none';
+                
+                moduleElement.style.display = isVisible ? 'none' : 'block';
+                
+                button.style.opacity = isVisible ? '0.5' : '1';
+                button.title = (isVisible ? '显示' : '隐藏') + name;
+                showToast(name + (isVisible ? ' 已隐藏' : ' 已显示'));
+                
+                if (stateKey === 'clock') {
+                    isClockVisible = !isVisible;
+                } else if (stateKey === 'weather') {
+                    isWeatherVisible = !isVisible;
+                } else if (stateKey === 'hitokoto') {
+                    isHitokotoVisible = !isVisible;
+                }
+                
+                updateInfoWidgetVisibility();
+            }
+
+            // 功能 1: Dock 栏的切换逻辑 (新增呼出按钮控制)
+            function toggleDock() {
+                isDockVisible = !isDockVisible;
+
+                if (isDockVisible) {
+                    bottomDockContainer.classList.remove('hidden');
+                    btnDockToggle.querySelector('i').textContent = '⬇'; // 向下箭头表示收起
+                    btnDockToggle.title = '收起 Dock 栏 (K)';
+                    dockCalloutButton.classList.remove('visible'); // 隐藏呼出按钮
+                    showToast('Dock 栏已展开');
+                } else {
+                    bottomDockContainer.classList.add('hidden');
+                    btnDockToggle.querySelector('i').textContent = '⬆'; // 向上箭头表示展开
+                    btnDockToggle.title = '展开 Dock 栏 (K)';
+                    
+                    // 如果 Dock 隐藏，同时隐藏 Popover
+                    if(isSourcePopoverVisible) {
+                         toggleSourcePopover();
+                    }
+                    
+                    dockCalloutButton.classList.add('visible'); // 显示呼出按钮
+                    showToast('Dock 栏已收起');
+                }
+            }
+
+
+            // 源选择 Popover 切换逻辑 (保持不变)
+            function toggleSourcePopover() {
+                // 如果 Dock 隐藏，不允许展开 Popover
+                if (!isDockVisible && !isSourcePopoverVisible) {
+                    showToast('请先展开 Dock 栏');
+                    return;
+                }
+                
+                isSourcePopoverVisible = !isSourcePopoverVisible;
+
+                if (isSourcePopoverVisible) {
+                    sourcePopover.classList.add('visible');
+                    btnSourceToggle.querySelector('i').textContent = '✖'; // 切换按钮图标
+                    document.addEventListener('click', closeSourcePopoverOnClickOutside);
+                    document.addEventListener('keydown', closeSourcePopoverOnEscape);
+                } else {
+                    sourcePopover.classList.remove('visible');
+                    btnSourceToggle.querySelector('i').textContent = '🌐';
+                    document.removeEventListener('click', closeSourcePopoverOnClickOutside);
+                    document.removeEventListener('keydown', closeSourcePopoverOnEscape);
+                }
+            }
+
+            function closeSourcePopoverOnClickOutside(e) {
+                 if (isSourcePopoverVisible && !sourcePopover.contains(e.target) && !btnSourceToggle.contains(e.target)) {
+                    toggleSourcePopover();
+                    showToast('源选择已收起');
+                }
+            }
+
+            function closeSourcePopoverOnEscape(e) {
+                if (isSourcePopoverVisible && e.key === 'Escape') {
+                    toggleSourcePopover();
+                    showToast('源选择已收起');
+                }
+            }
+
+
+            // 城市选择器逻辑 (保持不变)
+            function loadProvinces() {
+                citySelectorContainer.classList.add('visible');
+                citySelectorContainer.setAttribute('data-step', 'province');
+                selectorTitle.textContent = '请选择省份/直辖市';
+                provinceList.style.display = 'grid';
+                cityList.style.display = 'none';
+                cityBackButton.style.display = 'none';
+                provinceList.innerHTML = '';
+                
+                Object.keys(CN_CITIES_FULL).forEach(province => {
+                    const item = document.createElement('div');
+                    item.className = 'selector-item';
+                    item.textContent = province;
+                    item.addEventListener('click', () => loadCities(province));
+                    provinceList.appendChild(item);
+                });
+            }
+
+            function loadCities(province) {
+                currentProvince = province;
+                citySelectorContainer.setAttribute('data-step', 'city');
+                selectorTitle.textContent = `${province} - 请选择城市`;
+                provinceList.style.display = 'none';
+                cityList.style.display = 'grid';
+                cityBackButton.style.display = 'block';
+                cityList.innerHTML = '';
+
+                const cities = CN_CITIES_FULL[province] || [];
+                cities.forEach(city => {
+                    const item = document.createElement('div');
+                    item.className = 'selector-item';
+                    item.textContent = city;
+                    item.addEventListener('click', () => selectCity(city));
+                    cityList.appendChild(item);
+                });
+            }
+
+            function selectCity(city) {
+                citySelectorContainer.classList.remove('visible');
+                showToast(`正在查询 ${city} 的天气...`);
+                fetchWeather(city); 
+            }
+            
+            function handleCitySearchClick() {
+                if (citySelectorContainer.classList.contains('visible')) {
+                    citySelectorContainer.classList.remove('visible');
+                } else {
+                    loadProvinces();
+                }
+            }
+
+            cityCloseButton.addEventListener('click', () => {
+                citySelectorContainer.classList.remove('visible');
+                showToast('城市选择已取消');
+            });
+            
+            cityBackButton.addEventListener('click', () => {
+                loadProvinces();
+                currentProvince = null;
+            });
+
+
+            // 其他辅助函数和初始化逻辑 (保持不变)
+            function updateClock() { 
+                const now = new Date();
+                const h = String(now.getHours()).padStart(2, '0');
+                const m = String(now.getMinutes()).padStart(2, '0');
+                const s = String(now.getSeconds()).padStart(2, '0');
+                clockArea.textContent = `${h}:${m}:${s}`;
+            }
+
+            async function fetchIpLocation() { /* ... IP 定位逻辑不变 ... */
+                locationText.textContent = '定位中...';
+                try {
+                    const ipResponse = await fetch('https://api.ipify.org?format=json');
+                    const ipData = await ipResponse.json();
+                    const userIp = ipData.ip;
+                    const geoResponse = await fetch(`https://ip-api.com/json/${userIp}?lang=zh-CN`);
+                    if (!geoResponse.ok) throw new Error('Failed to fetch IP geo');
+                    
+                    const geoData = await geoResponse.json();
+                    if (geoData.status === 'success' && geoData.city) {
+                        const cityName = geoData.city;
+                        const geo = await getGeoLocation(cityName);
+                        if (geo) {
+                            cachedGeo = geo;
+                            currentCity = cityName;
+                            return cityName;
+                        }
+                    }
+                } catch (error) {
+                    console.error('获取 IP 位置失败，尝试使用默认 IP 定位:', error);
+                }
+
+                try {
+                    const response = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=ip&count=1&language=zh&format=json');
+                    if (!response.ok) throw new Error('Failed to fetch Open-Meteo IP geo');
+                    const data = await response.json();
+                    if (data.results && data.results.length > 0) {
+                        const geo = data.results[0];
+                        const locationName = geo.name || geo.country || '未知位置';
+                        cachedGeo = { lat: geo.latitude, lon: geo.longitude, name: locationName };
+                        currentCity = locationName;
+                        return locationName;
+                    }
+                } catch (error) {
+                    console.error('获取 Open-Meteo IP 地理位置失败:', error);
+                }
+
+                return null;
+            }
+
+
+            async function getGeoLocation(cityName = null) { 
+                locationText.textContent = '定位中...';
+                
+                if (cityName) {
+                    try {
+                        const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=zh&format=json`);
+                        if (!response.ok) throw new Error('Failed to fetch city geo');
+                        const data = await response.json();
+                        if (data.results && data.results.length > 0) {
+                            const geo = data.results[0];
+                            return { lat: geo.latitude, lon: geo.longitude, name: geo.name || cityName }; 
+                        } else {
+                            throw new Error('City not found');
+                        }
+                    } catch (error) {
+                        console.error('通过城市名获取地理位置失败:', error);
+                        return null; 
+                    }
+                }
+                
+                return null;
+            }
+
+            async function fetchWeather(cityName = null) { 
+                 if (!cityName && cachedWeather && !currentCity) return;
+                
+                if (cityName) {
+                    currentCity = cityName;
+                    cachedGeo = null; 
+                } else if (!currentCity) {
+                    const ipCity = await fetchIpLocation();
+                    if (ipCity) {
+                        cityName = ipCity;
+                        currentCity = ipCity;
+                    } else {
+                        locationText.textContent = '位置未知';
+                        tempText.textContent = 'N/A';
+                        weatherIcon.textContent = '⚠️';
+                        showToast('无法获取位置信息');
+                        return;
+                    }
+                }
+                
+                locationText.textContent = currentCity ? `${currentCity}...` : '定位中...';
+                tempText.textContent = '--°C';
+                weatherIcon.textContent = '...';
+
+                const geo = cachedGeo || await getGeoLocation(currentCity);
+
+                if (!geo || (geo.lat === 0 && geo.lon === 0 && geo.name === '位置未知')) {
+                    if (currentCity) currentCity = null; 
+                    return;
+                }
+                
+                locationText.textContent = geo.name;
+
+                try {
+                    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${geo.lat}&longitude=${geo.lon}&current=temperature_2m,weather_code&timezone=auto&forecast_days=1`;
+                    const response = await fetch(weatherUrl);
+                    if (!response.ok) throw new Error('Failed to fetch weather');
+                    const data = await response.json();
+                    
+                    const temp = Math.round(data.current.temperature_2m);
+                    const code = data.current.weather_code;
+                    const weatherStatus = getWeatherEmoji(code);
+
+                    tempText.textContent = `${temp}°C`;
+                    weatherIcon.textContent = weatherStatus;
+                    cachedWeather = { temp, code, status: weatherStatus };
+                    showToast(`${geo.name} 天气: ${weatherStatus} ${temp}°C`);
+
+                } catch (error) {
+                    console.error('获取天气信息失败:', error);
+                    tempText.textContent = 'N/A';
+                    weatherIcon.textContent = '⚠️';
+                    showToast('获取天气信息失败');
+                }
+            }
+
+            function getWeatherEmoji(code) { 
+                if (code >= 0 && code <= 1) return '☀️'; 
+                if (code >= 2 && code <= 3) return '☁️'; 
+                if (code >= 45 && code <= 48) return '🌫️'; 
+                if (code >= 51 && code <= 55) return '🌧️'; 
+                if (code >= 61 && code <= 65) return '🌧️'; 
+                if (code >= 71 && code <= 75) return '🌨️'; 
+                if (code >= 80 && code <= 82) return '⛈️'; 
+                if (code >= 85 && code <= 86) return '❄️'; 
+                if (code === 95) return '⛈️'; 
+                return '❓';
+            }
+
+            function initSourceBlocks() { 
+                 sourceButtons.innerHTML = '';
+                sources.forEach(({ label, color }, i) => {
+                    const block = document.createElement('div');
+                    block.className = 'src-block';
+                    block.setAttribute('role', 'button');
+                    block.setAttribute('tabindex', '0');
+                    block.setAttribute('aria-label', '图片源 ' + label);
+                    block.textContent = label;
+                    block.dataset.index = i;
+
+                    block.addEventListener('click', () => {
+                        if (currentSourceIndex !== i) {
+                            currentSourceIndex = i;
+                            updateSelectedBlock();
+                            toggleSourcePopover(); 
+                            refreshImage();
+                        } else {
+                            // 再次点击已选中的源，也触发刷新
+                             refreshImage();
+                        }
+                    });
+                    sourceButtons.appendChild(block);
+                });
+                updateSelectedBlock();
+            }
+
+            function updateSelectedBlock() { 
+                 sourceButtons.querySelectorAll('.src-block').forEach((block, i) => {
+                    block.classList.toggle('selected', i === currentSourceIndex);
+                });
+            }
+
+            async function refreshImage() { 
+                let url = sources[currentSourceIndex].url;
+                let fullUrl = url + (url.includes('?') ? '&' : '?') + '_ts=' + Date.now();
+
+                progressContainer.style.display = 'flex';
+                img.style.opacity = '0';
+                img.style.display = 'block';
+                bgBlur.style.display = 'block';
+                
+                // 首次加载前，将壁纸按钮显示为未加载状态（避免误操作）
+                btnWallpaperToggle.querySelector('i').textContent = '×'; 
+
+                const imageLoader = new Image();
+                imageLoader.onload = async () => {
+                    img.src = fullUrl;
+                    bgBlur.src = fullUrl;
+                    
+                    setTimeout(() => {
+                        progressContainer.style.display = 'none';
+                        img.style.opacity = '1';
+                        bgBlur.style.opacity = '0.3';
+                        hasImageLoadedSuccessfully = true;
+                        btnWallpaperToggle.querySelector('i').textContent = '×'; // 成功加载后显示×
+                        showToast(`壁纸加载成功, 源: ${sources[currentSourceIndex].label}`);
+                    }, 100);
+                };
+
+                imageLoader.onerror = () => {
+                    progressContainer.style.display = 'none';
+                    img.style.display = 'none';
+                    bgBlur.style.opacity = '0';
+                    setTimeout(() => bgBlur.style.display = 'none', 300);
+                    hasImageLoadedSuccessfully = false;
+                    btnWallpaperToggle.querySelector('i').textContent = '×'; // 加载失败，保持默认图标
+                    showToast('壁纸加载失败');
+                };
+
+                imageLoader.src = fullUrl;
+            }
+
+            async function fetchHitokoto() { 
+                hitokotoContent.textContent = '正在加载...';
+                hitokotoMeta.textContent = '';
+                try {
+                    const r = await fetch('https://v1.hitokoto.cn/');
+                    const data = await r.json();
+                    hitokotoContent.textContent = data.hitokoto;
+                    hitokotoMeta.textContent = `—— ${data.from_who || '佚名'} 出自《${data.from}》`;
+                } catch {
+                    hitokotoContent.textContent = '获取一言失败。';
+                    hitokotoMeta.textContent = '';
+                }
+            }
+            
+            // 功能 2: 切换壁纸逻辑 (更新图标)
+            function toggleWallpaper() { 
+                if (!hasImageLoadedSuccessfully) {
+                    showToast('请先选择源并加载壁纸 (R)');
+                    return;
+                }
+
+                const isVisible = img.style.opacity === '1';
+
+                if (isVisible) {
+                    img.style.opacity = '0';
+                    btnWallpaperToggle.querySelector('i').textContent = '×'; // 使用空方块表示隐藏
+                    btnWallpaperToggle.title = '显示壁纸 (T)';
+                    showToast('壁纸已隐藏');
+                } else {
+                    img.style.opacity = '1';
+                    btnWallpaperToggle.querySelector('i').textContent = '×';
+                    btnWallpaperToggle.title = '隐藏壁纸 (T)';
+                    showToast('壁纸已显示');
+                }
+            }
+            
+            // 许可模态框逻辑
+            function showLicenseModal() {
+                 if (localStorage.getItem('nsfwall_license_accepted') !== 'true') {
+                    modalOverlay.classList.add('visible');
+                    document.body.style.overflow = 'hidden'; 
+
+                    modalAcceptButton.addEventListener('click', () => {
+                        localStorage.setItem('nsfwall_license_accepted', 'true');
+                        modalOverlay.classList.remove('visible');
+                        document.body.style.overflow = ''; 
+                        // 接受后执行的初始化操作
+                        fetchHitokoto();
+                        fetchWeather(); 
+                        updateInfoWidgetVisibility(); 
+                        // 首次启动不再默认调用 refreshImage()
+                    });
+                 } else {
+                    // 如果已接受，直接进行初始化
+                    fetchHitokoto();
+                    fetchWeather(); 
+                    updateInfoWidgetVisibility(); 
+                 }
+            }
+            
+            // ===================================
+            // 新增功能：Info-Widget 拖动
+            // ===================================
+            function startDragging(e) {
+                // 确保只有在 info-widget 上按下鼠标左键时才开始拖动
+                if (e.button !== 0) return; 
+
+                isDragging = true;
+                // 计算鼠标点击位置相对于 widget 左上角的偏移量
+                const rect = infoWidget.getBoundingClientRect();
+                dragOffsetX = e.clientX - rect.left;
+                dragOffsetY = e.clientY - rect.top;
+
+                // 移除原有的 CSS transform 属性，切换到 top/left 定位
+                // 必须移除 transform: translate(-50%, -50%)
+                infoWidget.style.transition = 'none'; // 拖动时禁用 CSS 过渡
+                infoWidget.style.position = 'fixed';
+                infoWidget.style.top = rect.top + 'px';
+                infoWidget.style.left = rect.left + 'px';
+                infoWidget.style.transform = 'none'; 
+
+                document.addEventListener('mousemove', dragWidget);
+                document.addEventListener('mouseup', stopDragging);
+            }
+
+            function dragWidget(e) {
+                if (!isDragging) return;
+
+                // 计算新的位置
+                let newX = e.clientX - dragOffsetX;
+                let newY = e.clientY - dragOffsetY;
+
+                // 边界限制
+                const rect = infoWidget.getBoundingClientRect();
+                
+                // 限制在屏幕范围内
+                newX = Math.max(0, newX);
+                newX = Math.min(window.innerWidth - rect.width, newX);
+                newY = Math.max(0, newY);
+                newY = Math.min(window.innerHeight - rect.height, newY);
+
+
+                // 应用新位置
+                infoWidget.style.left = newX + 'px';
+                infoWidget.style.top = newY + 'px';
+            }
+
+            function stopDragging() {
+                if (!isDragging) return;
+                isDragging = false;
+                infoWidget.style.transition = 'opacity var(--transition-speed), background 0.5s ease, backdrop-filter 0.5s ease'; // 恢复过渡效果
+                document.removeEventListener('mousemove', dragWidget);
+                document.removeEventListener('mouseup', stopDragging);
+            }
+
+
+            // 6. 初始化和事件绑定
+            window.addEventListener('DOMContentLoaded', () => {
+                
+                showLicenseModal(); // 首次加载时处理许可模态框
+                
+                initSourceBlocks();
+                
+                updateClock();
+                setInterval(updateClock, 1000);
+                
+                // 拖动事件绑定
+                infoWidget.addEventListener('mousedown', startDragging);
+                // 阻止拖动时文本选中
+                infoWidget.addEventListener('dragstart', e => e.preventDefault());
+
+
+                // 绑定事件
+                btnRefresh.addEventListener('click', () => { 
+                    if (!hasImageLoadedSuccessfully) {
+                        showToast('请先选择图片源');
+                        return;
+                    }
+                    refreshImage(); 
+                    showToast('刷新壁纸'); 
+                });
+                
+                btnHitokotoRefresh.addEventListener('click', () => { 
+                    fetchHitokoto(); 
+                    fetchWeather(currentCity); 
+                });
+                
+                btnSourceToggle.addEventListener('click', () => { 
+                    toggleSourcePopover();
+                    if(isSourcePopoverVisible) showToast('源选择已展开');
+                }); 
+                
+                btnWallpaperToggle.addEventListener('click', toggleWallpaper);
+                
+                // Dock 切换事件
+                btnDockToggle.addEventListener('click', toggleDock);
+                // 呼出按钮事件
+                dockCalloutButton.addEventListener('click', toggleDock);
+
+                // 独立内容切换事件
+                btnClockToggle.addEventListener('click', () => toggleModule(clockArea, btnClockToggle, '时钟', 'clock'));
+                btnWeatherToggle.addEventListener('click', () => toggleModule(weatherArea, btnWeatherToggle, '天气', 'weather'));
+                btnHitokotoToggle.addEventListener('click', () => toggleModule(hitokotoArea, btnHitokotoToggle, '一言', 'hitokoto'));
+
+                // 搜索城市按钮事件
+                btnCitySearch.addEventListener('click', handleCitySearchClick);
+
+                // 快捷键绑定 
+                window.addEventListener('keydown', e => {
+                    // 弹窗开启或输入法合成时禁用快捷键
+                    if (e.isComposing || citySelectorContainer.classList.contains('visible') || modalOverlay.classList.contains('visible')) return; 
+
+                    switch (e.key.toLowerCase()) {
+                        case 'r':
+                            e.preventDefault();
+                            btnRefresh.click();
+                            break;
+                        case 'y':
+                            e.preventDefault();
+                            btnHitokotoRefresh.click();
+                            break;
+                        case 'u':
+                            e.preventDefault();
+                            btnHitokotoToggle.click();
+                            break;
+                        case 'h':
+                            e.preventDefault();
+                            btnSourceToggle.click();
+                            break;
+                        case 't':
+                            e.preventDefault();
+                            toggleWallpaper();
+                            break;
+                        case 'k':
+                            e.preventDefault();
+                            toggleDock(); // K 键用于 Dock 的展开/收起
+                            break; 
+                        case 'escape':
+                            e.preventDefault();
+                            if (isSourcePopoverVisible) {
+                                toggleSourcePopover(); 
+                            } else if (citySelectorContainer.classList.contains('visible')) {
+                                citySelectorContainer.classList.remove('visible');
+                                showToast('城市选择已取消');
+                            }
+                            break;
+                    }
+                });
+            });
+
+        })();
+    </script>
+</body>
+</html>
