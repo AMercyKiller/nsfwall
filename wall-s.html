@@ -197,6 +197,7 @@
             z-index: 20;
             
             display: flex;
+            flex-wrap: wrap;a
             align-items: center;
             gap: 15px; 
             
@@ -348,7 +349,7 @@
             width: 90%;
             max-width: 380px; 
             height: 90%;
-            max-height: 500px; 
+            max-height: 720px; 
             
             background: var(--glass-bg); 
             backdrop-filter: blur(20px) saturate(180%);
@@ -957,7 +958,7 @@
             function loadCities(province) {
                 currentProvince = province;
                 citySelectorContainer.setAttribute('data-step', 'city');
-                selectorTitle.textContent = `${province} - 请选择城市`;
+                selectorTitle.textContent = `${province}`;
                 provinceList.style.display = 'none';
                 cityList.style.display = 'grid';
                 cityBackButton.style.display = 'block';
