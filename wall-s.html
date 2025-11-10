@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
@@ -5,7 +6,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com/">
     <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 
 
     <style>
@@ -156,13 +157,10 @@
             min-height: 30px; 
         }
         
-        /* 🛠️ 前端优化：让 iframe 更好地继承父窗口样式 (文字、背景和字体) */
-        /* 针对新的心知天气挂件容器进行优化 */
-        #tp-weather-widget > iframe {
-            /* 强制 iframe 背景透明，以显示父容器的玻璃背景 */
-            background-color: transparent !important; 
+        /* 浅色模式（默认）下的 iframe 滤镜设置为 none */
+        #weather-iframe {
+            filter: none; 
         }
-
 
         /* 移除 #weather-display 的样式，因为它被 iframe 替换 */
         /* #weather-display {
@@ -506,6 +504,15 @@
             }
         }
         
+        /* ------------------------------------------------ */
+        /* 【最终修正】：深色模式下的 iFrame 滤镜优先级修正 */
+        /* 放在样式表的末尾，确保覆盖所有默认 #weather-iframe 规则 */
+        /* ------------------------------------------------ */
+        @media (prefers-color-scheme: dark) {
+            #weather-iframe {
+                filter: invert(1);
+            }
+        }
     </style>
 </head>
 
@@ -521,29 +528,15 @@
         </div>
 
         <div id="info-widget" class="info-widget" aria-live="polite" aria-label="时钟、天气和一言" data-visible="true" style="display: flex; touch-action: none;">
-            <div id="clock-area" style="display: block;">22:21:30</div> 
-            
+            <div id="clock-area" style="display: block;">21:57:00</div> 
             
             <div id="weather-area" style="display: block;">
-                <div id="tp-weather-widget"></div>
-                <script>
-                    (function(a,h,g,f,e,d,c,b){b=function(){d=h.createElement(g);c=h.getElementsByTagName(g)[0];d.src=e;d.charset="utf-8";d.async=1;c.parentNode.insertBefore(d,c)};a["SeniverseWeatherWidgetObject"]=f;a[f]||(a[f]=function(){(a[f].q=a[f].q||[]).push(arguments)});a[f].l=+new Date();if(a.attachEvent){a.attachEvent("onload",b)}else{a.addEventListener("load",b,false)}}(window,document,"script","SeniverseWeatherWidget","//cdn.sencdn.com/widget2/static/js/bundle.js?t="+parseInt((new Date().getTime() / 100000000).toString(),10)));
-                    window.SeniverseWeatherWidget('show', {
-                        flavor: "slim",
-                        location: "WX4FBXXFKE4F",
-                        geolocation: true,
-                        language: "zh-Hans",
-                        unit: "c",
-                        theme: "auto",
-                        token: "8d407447-0a57-489a-a4fb-d93d42e63965",
-                        hover: "enabled",
-                        container: "tp-weather-widget"
-                    })
-                </script>
-                </div>
+                <iframe id="weather-iframe" width="300" height="20" src="https://i.tianqi.com/?c=code&a=getcode&id=63&icon=1" frameborder="0"></iframe>
+            </div>
+            
             <div id="hitokoto-area" style="display: block;">
-                <div id="hitokoto-content">仰天大笑出门去，我辈岂是蓬蒿人。</div>
-                <div id="hitokoto-meta">—— 李白 出自《南陵别儿童入京》</div>
+                <div id="hitokoto-content">奇怪的是，当他死去，所有人才开始爱他。</div>
+                <div id="hitokoto-meta">—— 崔雪莉 出自《哲学》</div>
             </div>
         </div>
 
@@ -593,7 +586,8 @@
 
         <div id="source-popover" role="dialog" aria-modal="true" aria-label="图片源选择">
             <div class="popover-header">图片源选择</div>
-            <div id="source-buttons"><div class="src-block selected" role="button" tabindex="0" aria-label="图片源 I" data-index="0">I</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 II" data-index="1">II</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 III" data-index="2">III</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 IV" data-index="3">IV</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 V" data-index="4">V</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 VI" data-index="5">VI</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 VII" data-index="6">VII</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 VIII" data-index="7">VIII</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 VIII" data-index="8">VIII</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 X" data-index="9">X</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 XI" data-index="10">XI</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 XII" data-index="11">XII</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 XIII" data-index="12">XIII</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 XIIII" data-index="13">XIIII</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 XX" data-index="14">XX</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 XXI" data-index="15">XXI</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 XXI" data-index="16">XXI</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 XXI" data-index="17">XXI</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 XXII" data-index="18">XXII</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 XXIII" data-index="19">XXIII</div><div class="src-block" role="button" tabindex="0" aria-label="图片源 XXIIII" data-index="20">XXIIII</div></div>
+            <div id="source-buttons">
+            </div>
         </div>
 
         <button id="dock-callout-button" class="control-button" type="button" title="展开 Dock 栏 (K)">
@@ -1120,5 +1114,5 @@
 
         })();
     </script>
-
-</body></html>
+</body>
+</html>
