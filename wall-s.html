@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <title>NSFWall – Lite Edition (Glass Dock UI v13.1)</title>
@@ -28,7 +28,7 @@
             --dock-bottom-offset: 60px; /* Dock 距离底部的距离 */
         }
 
-        /* 深色模式覆盖 */
+        /* 深色模式覆盖 - 仅处理主题变量 */
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-base: #121212;
@@ -38,6 +38,8 @@
                 --border-color: rgba(255, 255, 255, 0.05);
                 --shadow-color: rgba(0, 0, 0, 0.4);
             }
+            
+            /* 【移除旧的滤镜设置】 */
         }
 
         /* 2. 全局和布局样式 */
@@ -151,20 +153,29 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            /* 调整为适应 iframe */
+            min-height: 30px; 
         }
         
-        #weather-display {
+        /* 浅色模式（默认）下的 iframe 滤镜设置为 none */
+        #weather-iframe {
+            filter: none; 
+        }
+
+        /* 移除 #weather-display 的样式，因为它被 iframe 替换 */
+        /* #weather-display {
             display: flex;
             align-items: center;
             gap: 20px;
             font-size: 1.3em; 
             font-weight: 700;
             justify-content: center;
-        }
+        } */
 
-        #weather-icon {
+        /* 移除 #weather-icon 的样式 */
+        /* #weather-icon {
             font-size: 1.8em; 
-        }
+        } */
         
         #hitokoto-area {
             text-align: center;
@@ -197,7 +208,7 @@
             z-index: 20;
             
             display: flex;
-            flex-wrap: wrap;a
+            flex-wrap: wrap;
             align-items: center;
             gap: 15px; 
             
@@ -281,7 +292,7 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease, transform 0.3s ease;
-            min-width: 320px; 
+
         }
         
         #source-popover.visible {
@@ -303,7 +314,10 @@
             flex-wrap: wrap; 
             justify-content: center; 
             gap: 10px; 
-            padding-top: 5px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            overflow-y: auto;
+            max-width: 550px;
         }
 
         /* 源选择块 (src-block) - 保持圆形设计 */
@@ -340,91 +354,7 @@
         }
 
 
-        /* 7. 城市选择器 (右下角卡片) */
-        #city-selector-container {
-            position: fixed;
-            right: var(--dock-bottom-offset); 
-            bottom: calc(var(--dock-bottom-offset) + var(--dock-height) + 10px); 
-            z-index: 50;
-            width: 90%;
-            max-width: 380px; 
-            height: 90%;
-            max-height: 720px; 
-            
-            background: var(--glass-bg); 
-            backdrop-filter: blur(20px) saturate(180%);
-            border-radius: var(--radius-large);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 10px 40px var(--shadow-color);
-            padding: 20px;
-            
-            display: none; 
-            flex-direction: column;
-            gap: 15px;
-            
-            transform: translateX(100%) translateY(0); 
-            transition: transform 0.4s ease-out, opacity 0.4s ease-out;
-        }
-        
-        #city-selector-container.visible {
-            transform: translateX(0) translateY(0); 
-            display: flex;
-        }
-
-        .selector-header {
-            font-size: 1.2em;
-            font-weight: 700;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .selector-header button {
-            all: unset;
-            cursor: pointer;
-            font-size: 1.2em;
-            padding: 5px;
-            transition: color 0.2s;
-        }
-
-        .selector-header button:hover {
-            color: var(--accent-color);
-        }
-        
-        .selector-list-wrapper {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding-right: 5px; 
-        }
-        
-        .selector-list {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 10px;
-            padding: 5px 0;
-        }
-        
-        .selector-item {
-            padding: 8px 10px;
-            background-color: rgba(255, 255, 255, 0.1); 
-            color: var(--text-color);
-            border-radius: var(--radius-small);
-            cursor: pointer;
-            transition: background-color 0.15s, transform 0.1s;
-            font-weight: 500;
-            text-align: center;
-            border: 1px solid var(--border-color);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .selector-item:hover {
-             background-color: var(--glass-border);
-             transform: translateY(-1px);
-        }
+        /* 7. 城市选择器 (右下角卡片) - 完全删除相关样式或保留为空 */
         
         /* 8. Dock 呼出按钮样式 */
         #dock-callout-button {
@@ -565,24 +495,22 @@
                 max-width: 90vw;
                 padding: 10px;
                 min-width: unset;
+                min-height: unset;
+
             }
             
             #source-buttons {
                 grid-template-columns: repeat(4, 1fr);
             }
-            
-            #city-selector-container {
-                right: 5vw;
-                bottom: 5vw;
-                top: 5vw;
-                left: 5vw;
-                max-width: unset;
-                max-height: unset;
-                height: auto;
-            }
-            
-            .selector-list {
-                grid-template-columns: repeat(2, 1fr); 
+        }
+        
+        /* ------------------------------------------------ */
+        /* 【最终修正】：深色模式下的 iFrame 滤镜优先级修正 */
+        /* 放在样式表的末尾，确保覆盖所有默认 #weather-iframe 规则 */
+        /* ------------------------------------------------ */
+        @media (prefers-color-scheme: dark) {
+            #weather-iframe {
+                filter: invert(1);
             }
         }
     </style>
@@ -603,11 +531,7 @@
             <div id="clock-area" style="display: block;">21:57:00</div> 
             
             <div id="weather-area" style="display: block;">
-                <div id="weather-display">
-                    <span id="weather-icon">☁️</span>
-                    <span id="location-text">Ip</span>
-                    <span id="temp-text">12°C</span>
-                </div>
+                <iframe id="weather-iframe" width="300" height="20" src="https://i.tianqi.com/?c=code&a=getcode&id=63&icon=1" frameborder="0"></iframe>
             </div>
             
             <div id="hitokoto-area" style="display: block;">
@@ -640,10 +564,7 @@
             <div class="dock-group-separator"></div>
 
             <div id="action-group" class="dock-group">
-                <button id="btn-city-search" class="control-button" type="button" title="搜索城市天气">
-                    <i class="icon-search">🗺</i>
-                </button>
-                <button id="btn-hitokoto-refresh" class="control-button" type="button" title="刷新一言/天气 (Y)">
+                <button id="btn-hitokoto-refresh" class="control-button" type="button" title="刷新一言">
                     <i class="icon-quote">#︎</i>
                 </button>
                 <button id="btn-refresh" class="control-button" type="button" title="刷新壁纸 (R)">
@@ -669,18 +590,6 @@
             </div>
         </div>
 
-        <div id="city-selector-container" role="dialog" aria-modal="true" aria-label="城市选择器" data-step="province">
-            <div class="selector-header">
-                <button id="city-back-button" title="返回省份选择" style="display: none;">←</button>
-                <span id="selector-title" style="flex-grow: 1; text-align: center;">请选择省份/直辖市</span>
-                <button id="city-close-button" title="关闭选择器">✖</button>
-            </div>
-            <div class="selector-list-wrapper">
-                <div id="province-list" class="selector-list"></div>
-                <div id="city-list" class="selector-list" style="display: none;"></div>
-            </div>
-        </div>
-        
         <button id="dock-callout-button" class="control-button" type="button" title="展开 Dock 栏 (K)">
             <i class="icon-dock-callout">⬆</i>
         </button>
@@ -730,9 +639,8 @@
             const clockArea = document.getElementById('clock-area');
             const weatherArea = document.getElementById('weather-area');
             const hitokotoArea = document.getElementById('hitokoto-area');
-            const locationText = document.getElementById('location-text');
-            const tempText = document.getElementById('temp-text');
-            const weatherIcon = document.getElementById('weather-icon');
+            // 已删除与天气相关的DOM引用：locationText, tempText, weatherIcon
+
             const hitokotoContent = document.getElementById('hitokoto-content');
             const hitokotoMeta = document.getElementById('hitokoto-meta');
 
@@ -744,16 +652,10 @@
             const btnClockToggle = document.getElementById('btn-clock-toggle');
             const btnWeatherToggle = document.getElementById('btn-weather-toggle');
             const btnHitokotoToggle = document.getElementById('btn-hitokoto-toggle');
-            const btnCitySearch = document.getElementById('btn-city-search');
+            // 已删除城市搜索按钮引用：btnCitySearch
             const btnDockToggle = document.getElementById('btn-dock-toggle'); 
             
-            // 城市选择器 DOM 引用
-            const citySelectorContainer = document.getElementById('city-selector-container');
-            const provinceList = document.getElementById('province-list');
-            const cityList = document.getElementById('city-list');
-            const cityCloseButton = document.getElementById('city-close-button');
-            const cityBackButton = document.getElementById('city-back-button');
-            const selectorTitle = document.getElementById('selector-title');
+            // 城市选择器 DOM 引用 (已删除)
 
             // 模态框 DOM 引用 
             const modalOverlay = document.getElementById('modal-overlay');
@@ -762,14 +664,11 @@
             // 状态变量 
             let currentSourceIndex = 0;
             let hasImageLoadedSuccessfully = false;
-            let currentCity = null; 
-            let cachedGeo = null;
-            let cachedWeather = null;
-            let currentProvince = null;
+            // 已删除与天气相关的状态变量：currentCity, cachedGeo, cachedWeather, currentProvince
             
             // 模块可见性状态
             let isClockVisible = true;
-            let isWeatherVisible = true;
+            let isWeatherVisible = true; // 依然保留，用于控制 weatherArea 的显示/隐藏
             let isHitokotoVisible = true;
             let isSourcePopoverVisible = false;
             let isDockVisible = true; 
@@ -782,46 +681,29 @@
             const sources = [
                 { url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=2', label: 'I', color: 'hsl(205,90%,50%)' },
                 { url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=4', label: 'II', color: 'hsl(120,75%,42%)' },
-                { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=极品美女图片', label: 'III', color: 'hsl(330,85%,45%)' },
+                { url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924', label: 'III', color: 'hsl(330,85%,45%)' },
                 { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=日本COS中国COS', label: 'IV', 'color': 'hsl(40,86%,56%)' },
                 { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=少女写真5', label: 'V', color: 'hsl(280,70%,53%)' },
                 { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=少女写真6', label: 'VI', color: 'hsl(15,70%,48%)' },
-                { url: 'https://api.lolimi.cn/API/meizi/api.php?type=image', label: 'VII', color: 'hsl(190,80%,55%)' },
-                { url: 'https://api.lolimi.cn/API/meinv/api.php?type=image', label: 'VIII', color: 'hsl(280,70%,53%)' }
+                { url: 'https://api.r10086.com/樱道随机图片api接口.php?图片系列=极品美女图片', label: 'VII', color: 'hsl(190,80%,55%)' },
+                { url: 'https://api.lolimi.cn/API/meinv/api.php?type=image', label: 'VIII', color: 'hsl(280,70%,53%)' },
+                { url: 'https://api.lolimi.cn/API/meizi/api.php?type=image', label: 'VIII', color: 'hsl(280,70%,53%)' },
+                { url: 'https://api.lolimi.cn/API/tup/xjj.php', label: 'X', color: 'hsl(280,70%,53%)' },
+                { url: 'https://cdn.seovx.com/?mom=302', label: 'XI', color: 'hsl(280,70%,53%)' },
+                { url: 'https://cdn.seovx.com/ha/?mom=302', label: 'XII', color: 'hsl(280,70%,53%)' },
+                { url: 'https://api.btstu.cn/sjbz/api.php', label: 'XIII', color: 'hsl(280,70%,53%)' },
+                { url: 'https://www.yumus.cn/api/?target=img&brand=360&type=1', label: 'XIIII', color: 'hsl(280,70%,53%)' },
+                { url: 'http://api.fenei.net/api/girl/random.php', label: 'XX', color: 'hsl(280,70%,53%)' },
+                { url: 'https://wp.upx8.com/api.php?content=美女', label: 'XXI', color: 'hsl(280,70%,53%)' },
+                { url: 'https://api.mtyqx.cn/xjjapi/random.php', label: 'XXI', color: 'hsl(280,70%,53%)' },
+                { url: 'https://v2.xxapi.cn/api/meinvpic?return=302', label: 'XXI', color: 'hsl(280,70%,53%)' },
+                { url: 'https://api.suyanw.cn/api/ksxjj', label: 'XXII', color: 'hsl(280,70%,53%)' },
+                { url: 'http://api.yujn.cn/api/jk.php?', label: 'XXIII', color: 'hsl(280,70%,53%)' },
+                { url: 'https://api.suyanw.cn/api/ksxjj', label: 'XXIIII', color: 'hsl(280,70%,53%)' },
             ];
             
-            // 城市列表 (不变)
-            const CN_CITIES_FULL = {
-                 "北京": ["北京"], "上海": ["上海"], "天津": ["天津"], "重庆": ["重庆"],
-                "河北": ["石家庄", "唐山", "秦皇岛", "邯郸", "邢台", "保定", "张家口", "承德", "沧州", "廊坊", "衡水"],
-                "山西": ["太原", "大同", "阳泉", "长治", "晋城", "朔州", "晋中", "运城", "忻州", "临汾", "吕梁"],
-                "辽宁": ["沈阳", "大连", "鞍山", "抚顺", "本溪", "丹东", "锦州", "营口", "阜新", "辽阳", "盘锦", "铁岭", "朝阳", "葫芦岛"],
-                "吉林": ["长春", "吉林", "四平", "辽源", "通化", "白山", "松原", "白城", "延边"],
-                "黑龙江": ["哈尔滨", "齐齐哈尔", "鸡西", "鹤岗", "双鸭山", "大庆", "伊春", "佳木斯", "七台河", "牡丹江", "黑河", "绥化", "大兴安岭"],
-                "江苏": ["南京", "无锡", "徐州", "常州", "苏州", "南通", "连云港", "淮安", "盐城", "扬州", "镇江", "泰州", "宿迁"],
-                "浙江": ["杭州", "宁波", "温州", "嘉兴", "湖州", "绍兴", "金华", "衢州", "舟山", "台州", "丽水"],
-                "安徽": ["合肥", "芜湖", "蚌埠", "淮南", "马鞍山", "淮北", "铜陵", "安庆", "黄山", "滁州", "阜阳", "宿州", "六安", "亳州", "池州", "宣城"],
-                "福建": ["福州", "厦门", "莆田", "三明", "泉州", "漳州", "南平", "龙岩", "宁德"],
-                "江西": ["南昌", "景德镇", "萍乡", "九江", "新余", "鹰潭", "赣州", "吉安", "宜春", "抚州", "上饶"],
-                "山东": ["济南", "青岛", "淄博", "枣庄", "东营", "烟台", "潍坊", "济宁", "泰安", "威海", "日照", "临沂", "德州", "聊城", "滨州", "菏泽"],
-                "河南": ["郑州", "开封", "洛阳", "平顶山", "安阳", "鹤壁", "新乡", "焦作", "濮阳", "许昌", "漯河", "三门峡", "南阳", "商丘", "信阳", "周口", "驻马店"],
-                "湖北": ["武汉", "黄石", "十堰", "宜昌", "襄阳", "鄂州", "荆门", "孝感", "荆州", "黄冈", "咸宁", "随州", "恩施", "仙桃", "潜江", "天门", "神农架"],
-                "湖南": ["长沙", "株洲", "湘潭", "衡阳", "邵阳", "岳阳", "常德", "张家界", "益阳", "郴州", "永州", "怀化", "娄底", "湘西"],
-                "广东": ["广州", "韶关", "深圳", "珠海", "汕头", "佛山", "江门", "湛江", "茂名", "肇庆", "惠州", "梅州", "汕尾", "河源", "阳江", "清远", "东莞", "中山", "潮州", "揭阳", "云浮"],
-                "海南": ["海口", "三亚", "三沙", "儋州", "五指山", "琼海", "文昌", "万宁", "东方"],
-                "四川": ["成都", "自贡", "攀枝花", "泸州", "德阳", "绵阳", "广元", "遂宁", "内江", "乐山", "南充", "眉山", "宜宾", "广安", "达州", "雅安", "巴中", "资阳", "阿坝", "甘孜", "凉山"],
-                "贵州": ["贵阳", "六盘水", "遵义", "安顺", "毕节", "铜仁", "黔西南", "黔东南", "黔南"],
-                "云南": ["昆明", "曲靖", "玉溪", "保山", "昭通", "丽江", "普洱", "临沧", "楚雄", "红河", "文山", "西双版纳", "大理", "德宏", "怒江", "迪庆"],
-                "陕西": ["西安", "铜川", "宝鸡", "咸阳", "渭南", "延安", "汉中", "榆林", "安康", "商洛"],
-                "甘肃": ["兰州", "嘉峪关", "金昌", "白银", "天水", "武威", "张掖", "平凉", "酒泉", "庆阳", "定西", "陇南", "临夏", "甘南"],
-                "青海": ["西宁", "海东", "海北", "黄南", "海南", "果洛", "玉树", "海西"],
-                "宁夏": ["银川", "石嘴山", "吴忠", "固原", "中卫"],
-                "新疆": ["乌鲁木齐", "克拉玛依", "吐鲁番", "哈密", "昌吉", "博尔塔拉", "巴音郭楞", "阿克苏", "克孜勒苏", "喀什", "和田", "伊犁", "塔城", "阿勒泰"],
-                "内蒙古": ["呼和浩特", "包头", "乌海", "赤峰", "通辽", "鄂尔多斯", "呼伦贝尔", "巴彦淖尔", "乌兰察布", "兴安", "锡林郭勒", "阿拉善"],
-                "西藏": ["拉萨", "日喀则", "昌都", "林芝", "山南", "那曲", "阿里"],
-                "广西": ["南宁", "柳州", "桂林", "梧州", "北海", "防城港", "钦州", "贵港", "玉林", "百色", "贺州", "河池", "来宾", "崇左"],
-                "香港": ["香港"], "澳门": ["澳门"], "台湾": ["台北", "高雄", "台中", "台南", "桃园", "新北", "基隆", "新竹", "嘉义"]
-            };
+            // 城市列表 (已删除)
+
 
             let toastTimeout = null;
             function showToast(msg) { 
@@ -915,7 +797,7 @@
                     document.addEventListener('keydown', closeSourcePopoverOnEscape);
                 } else {
                     sourcePopover.classList.remove('visible');
-                    btnSourceToggle.querySelector('i').textContent = '🌐';
+                    btnSourceToggle.querySelector('i').textContent = '🗁';
                     document.removeEventListener('click', closeSourcePopoverOnClickOutside);
                     document.removeEventListener('keydown', closeSourcePopoverOnEscape);
                 }
@@ -936,70 +818,10 @@
             }
 
 
-            // 城市选择器逻辑 (保持不变)
-            function loadProvinces() {
-                citySelectorContainer.classList.add('visible');
-                citySelectorContainer.setAttribute('data-step', 'province');
-                selectorTitle.textContent = '请选择省份/直辖市';
-                provinceList.style.display = 'grid';
-                cityList.style.display = 'none';
-                cityBackButton.style.display = 'none';
-                provinceList.innerHTML = '';
-                
-                Object.keys(CN_CITIES_FULL).forEach(province => {
-                    const item = document.createElement('div');
-                    item.className = 'selector-item';
-                    item.textContent = province;
-                    item.addEventListener('click', () => loadCities(province));
-                    provinceList.appendChild(item);
-                });
-            }
+            // 城市选择器逻辑 (已删除)
+            // loadProvinces, loadCities, selectCity, handleCitySearchClick, cityCloseButton, cityBackButton 均已删除
 
-            function loadCities(province) {
-                currentProvince = province;
-                citySelectorContainer.setAttribute('data-step', 'city');
-                selectorTitle.textContent = `${province}`;
-                provinceList.style.display = 'none';
-                cityList.style.display = 'grid';
-                cityBackButton.style.display = 'block';
-                cityList.innerHTML = '';
-
-                const cities = CN_CITIES_FULL[province] || [];
-                cities.forEach(city => {
-                    const item = document.createElement('div');
-                    item.className = 'selector-item';
-                    item.textContent = city;
-                    item.addEventListener('click', () => selectCity(city));
-                    cityList.appendChild(item);
-                });
-            }
-
-            function selectCity(city) {
-                citySelectorContainer.classList.remove('visible');
-                showToast(`正在查询 ${city} 的天气...`);
-                fetchWeather(city); 
-            }
-            
-            function handleCitySearchClick() {
-                if (citySelectorContainer.classList.contains('visible')) {
-                    citySelectorContainer.classList.remove('visible');
-                } else {
-                    loadProvinces();
-                }
-            }
-
-            cityCloseButton.addEventListener('click', () => {
-                citySelectorContainer.classList.remove('visible');
-                showToast('城市选择已取消');
-            });
-            
-            cityBackButton.addEventListener('click', () => {
-                loadProvinces();
-                currentProvince = null;
-            });
-
-
-            // 其他辅助函数和初始化逻辑 (保持不变)
+            // 其他辅助函数和初始化逻辑 (更新)
             function updateClock() { 
                 const now = new Date();
                 const h = String(now.getHours()).padStart(2, '0');
@@ -1008,139 +830,7 @@
                 clockArea.textContent = `${h}:${m}:${s}`;
             }
 
-            async function fetchIpLocation() { /* ... IP 定位逻辑不变 ... */
-                locationText.textContent = '定位中...';
-                try {
-                    const ipResponse = await fetch('https://api.ipify.org?format=json');
-                    const ipData = await ipResponse.json();
-                    const userIp = ipData.ip;
-                    const geoResponse = await fetch(`https://ip-api.com/json/${userIp}?lang=zh-CN`);
-                    if (!geoResponse.ok) throw new Error('Failed to fetch IP geo');
-                    
-                    const geoData = await geoResponse.json();
-                    if (geoData.status === 'success' && geoData.city) {
-                        const cityName = geoData.city;
-                        const geo = await getGeoLocation(cityName);
-                        if (geo) {
-                            cachedGeo = geo;
-                            currentCity = cityName;
-                            return cityName;
-                        }
-                    }
-                } catch (error) {
-                    console.error('获取 IP 位置失败，尝试使用默认 IP 定位:', error);
-                }
-
-                try {
-                    const response = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=ip&count=1&language=zh&format=json');
-                    if (!response.ok) throw new Error('Failed to fetch Open-Meteo IP geo');
-                    const data = await response.json();
-                    if (data.results && data.results.length > 0) {
-                        const geo = data.results[0];
-                        const locationName = geo.name || geo.country || '未知位置';
-                        cachedGeo = { lat: geo.latitude, lon: geo.longitude, name: locationName };
-                        currentCity = locationName;
-                        return locationName;
-                    }
-                } catch (error) {
-                    console.error('获取 Open-Meteo IP 地理位置失败:', error);
-                }
-
-                return null;
-            }
-
-
-            async function getGeoLocation(cityName = null) { 
-                locationText.textContent = '定位中...';
-                
-                if (cityName) {
-                    try {
-                        const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=zh&format=json`);
-                        if (!response.ok) throw new Error('Failed to fetch city geo');
-                        const data = await response.json();
-                        if (data.results && data.results.length > 0) {
-                            const geo = data.results[0];
-                            return { lat: geo.latitude, lon: geo.longitude, name: geo.name || cityName }; 
-                        } else {
-                            throw new Error('City not found');
-                        }
-                    } catch (error) {
-                        console.error('通过城市名获取地理位置失败:', error);
-                        return null; 
-                    }
-                }
-                
-                return null;
-            }
-
-            async function fetchWeather(cityName = null) { 
-                 if (!cityName && cachedWeather && !currentCity) return;
-                
-                if (cityName) {
-                    currentCity = cityName;
-                    cachedGeo = null; 
-                } else if (!currentCity) {
-                    const ipCity = await fetchIpLocation();
-                    if (ipCity) {
-                        cityName = ipCity;
-                        currentCity = ipCity;
-                    } else {
-                        locationText.textContent = '位置未知';
-                        tempText.textContent = 'N/A';
-                        weatherIcon.textContent = '⚠️';
-                        showToast('无法获取位置信息');
-                        return;
-                    }
-                }
-                
-                locationText.textContent = currentCity ? `${currentCity}...` : '定位中...';
-                tempText.textContent = '--°C';
-                weatherIcon.textContent = '...';
-
-                const geo = cachedGeo || await getGeoLocation(currentCity);
-
-                if (!geo || (geo.lat === 0 && geo.lon === 0 && geo.name === '位置未知')) {
-                    if (currentCity) currentCity = null; 
-                    return;
-                }
-                
-                locationText.textContent = geo.name;
-
-                try {
-                    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${geo.lat}&longitude=${geo.lon}&current=temperature_2m,weather_code&timezone=auto&forecast_days=1`;
-                    const response = await fetch(weatherUrl);
-                    if (!response.ok) throw new Error('Failed to fetch weather');
-                    const data = await response.json();
-                    
-                    const temp = Math.round(data.current.temperature_2m);
-                    const code = data.current.weather_code;
-                    const weatherStatus = getWeatherEmoji(code);
-
-                    tempText.textContent = `${temp}°C`;
-                    weatherIcon.textContent = weatherStatus;
-                    cachedWeather = { temp, code, status: weatherStatus };
-                    showToast(`${geo.name} 天气: ${weatherStatus} ${temp}°C`);
-
-                } catch (error) {
-                    console.error('获取天气信息失败:', error);
-                    tempText.textContent = 'N/A';
-                    weatherIcon.textContent = '⚠️';
-                    showToast('获取天气信息失败');
-                }
-            }
-
-            function getWeatherEmoji(code) { 
-                if (code >= 0 && code <= 1) return '☀️'; 
-                if (code >= 2 && code <= 3) return '☁️'; 
-                if (code >= 45 && code <= 48) return '🌫️'; 
-                if (code >= 51 && code <= 55) return '🌧️'; 
-                if (code >= 61 && code <= 65) return '🌧️'; 
-                if (code >= 71 && code <= 75) return '🌨️'; 
-                if (code >= 80 && code <= 82) return '⛈️'; 
-                if (code >= 85 && code <= 86) return '❄️'; 
-                if (code === 95) return '⛈️'; 
-                return '❓';
-            }
+            // fetchIpLocation, getGeoLocation, fetchWeather, getWeatherEmoji 已删除
 
             function initSourceBlocks() { 
                  sourceButtons.innerHTML = '';
@@ -1185,7 +875,7 @@
                 bgBlur.style.display = 'block';
                 
                 // 首次加载前，将壁纸按钮显示为未加载状态（避免误操作）
-                btnWallpaperToggle.querySelector('i').textContent = '×'; 
+                btnWallpaperToggle.querySelector('i').textContent = '🏞'; 
 
                 const imageLoader = new Image();
                 imageLoader.onload = async () => {
@@ -1197,7 +887,7 @@
                         img.style.opacity = '1';
                         bgBlur.style.opacity = '0.3';
                         hasImageLoadedSuccessfully = true;
-                        btnWallpaperToggle.querySelector('i').textContent = '×'; // 成功加载后显示×
+                        btnWallpaperToggle.querySelector('i').textContent = '🏞'; // 成功加载后显示×
                         showToast(`壁纸加载成功, 源: ${sources[currentSourceIndex].label}`);
                     }, 100);
                 };
@@ -1208,7 +898,7 @@
                     bgBlur.style.opacity = '0';
                     setTimeout(() => bgBlur.style.display = 'none', 300);
                     hasImageLoadedSuccessfully = false;
-                    btnWallpaperToggle.querySelector('i').textContent = '×'; // 加载失败，保持默认图标
+                    btnWallpaperToggle.querySelector('i').textContent = '🏞'; // 加载失败，保持默认图标
                     showToast('壁纸加载失败');
                 };
 
@@ -1245,7 +935,7 @@
                     showToast('壁纸已隐藏');
                 } else {
                     img.style.opacity = '1';
-                    btnWallpaperToggle.querySelector('i').textContent = '×';
+                    btnWallpaperToggle.querySelector('i').textContent = '🏞';
                     btnWallpaperToggle.title = '隐藏壁纸 (T)';
                     showToast('壁纸已显示');
                 }
@@ -1263,14 +953,14 @@
                         document.body.style.overflow = ''; 
                         // 接受后执行的初始化操作
                         fetchHitokoto();
-                        fetchWeather(); 
+                        // fetchWeather(); // 已删除
                         updateInfoWidgetVisibility(); 
                         // 首次启动不再默认调用 refreshImage()
                     });
                  } else {
                     // 如果已接受，直接进行初始化
                     fetchHitokoto();
-                    fetchWeather(); 
+                    // fetchWeather(); // 已删除
                     updateInfoWidgetVisibility(); 
                  }
             }
@@ -1359,7 +1049,7 @@
                 
                 btnHitokotoRefresh.addEventListener('click', () => { 
                     fetchHitokoto(); 
-                    fetchWeather(currentCity); 
+                    // fetchWeather(currentCity); // 天气不再需要刷新
                 });
                 
                 btnSourceToggle.addEventListener('click', () => { 
@@ -1379,13 +1069,12 @@
                 btnWeatherToggle.addEventListener('click', () => toggleModule(weatherArea, btnWeatherToggle, '天气', 'weather'));
                 btnHitokotoToggle.addEventListener('click', () => toggleModule(hitokotoArea, btnHitokotoToggle, '一言', 'hitokoto'));
 
-                // 搜索城市按钮事件
-                btnCitySearch.addEventListener('click', handleCitySearchClick);
+                // 搜索城市按钮事件已删除
 
                 // 快捷键绑定 
                 window.addEventListener('keydown', e => {
                     // 弹窗开启或输入法合成时禁用快捷键
-                    if (e.isComposing || citySelectorContainer.classList.contains('visible') || modalOverlay.classList.contains('visible')) return; 
+                    if (e.isComposing || modalOverlay.classList.contains('visible')) return; 
 
                     switch (e.key.toLowerCase()) {
                         case 'r':
@@ -1416,10 +1105,8 @@
                             e.preventDefault();
                             if (isSourcePopoverVisible) {
                                 toggleSourcePopover(); 
-                            } else if (citySelectorContainer.classList.contains('visible')) {
-                                citySelectorContainer.classList.remove('visible');
-                                showToast('城市选择已取消');
                             }
+                            // 城市选择器快捷键已删除
                             break;
                     }
                 });
