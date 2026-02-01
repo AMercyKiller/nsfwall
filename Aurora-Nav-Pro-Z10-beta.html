@@ -134,12 +134,15 @@
             }
         }
 
+        body.hide-greeting .greeting-text {
+            display: none !important;
+        }
+
         #wallpaper-layer {
             position: fixed;
             inset: 0;
             width: 100%;
             height: 100%;
-            z-index: var(--z-bg);
             object-fit: cover;
             opacity: 0;
             transition: opacity 1s ease;
@@ -1567,8 +1570,7 @@
                     <i class="ri-arrow-down-s-line" style="font-size:.8rem;opacity:.6"></i>
                     <div class="engine-dropdown" id="engine-list"></div>
                 </div>
-                <input type="text" class="search-input" id="search-input" placeholder="Surfing..."
-                    autocomplete="off">
+                <input type="text" class="search-input" id="search-input" placeholder="Surfing..." autocomplete="off">
                 <button class="search-btn" onclick="handleSearch()"><i class="ri-search-2-line"></i></button>
             </div>
         </div>
@@ -1771,7 +1773,10 @@
             <div class="settings-page" id="page-visibility">
                 <div class="setting-group">
                     <div class="group-label"><i class="ri-eye-line"></i> 组件可见性开关</div>
-
+                    <div class="setting-row"><span>显示问候语</span>
+                        <label class="switch"><input type="checkbox" id="sw-show-greeting"
+                                onchange="toggleConfig('showGreeting')"><span class="slider"></span></label>
+                    </div>
                     <div class="setting-row"><span>显示时钟</span>
                         <label class="switch"><input type="checkbox" id="sw-show-clock"
                                 onchange="toggleConfig('showClock')"><span class="slider"></span></label>
@@ -1977,7 +1982,7 @@
                 <h3>Aurora Nav Pro</h3>
                 <p style="color:var(--accent-color);font-weight:600;font-size:.9rem;margin-top:5px">
                     Z10 IndexedDB
-                </p>    
+                </p>
             </div>
             <p style="color:#cbd5e1;line-height:1.6;margin-bottom:20px;">
                 Aurora Nav Pro 是一款浏览器起始页。
@@ -1988,7 +1993,8 @@
                 <div class="info-item"><span>核心架构</span><span>Gemini AI</span></div>
                 <div class="info-item"><span>图标库</span><span>Remix Icon</span></div>
                 <div class="info-item"><span>Faviconk库</span><span>favicon.im</span></div>
-                <div class="info-item"><span>内置图库</span><span><a href="https://imgapi.xl0408.top/index.php" style="color:var(--accent-color);"  >来源网络</a></span></div>
+                <div class="info-item"><span>内置图库</span><span><a href="https://imgapi.xl0408.top/index.php"
+                            style="color:var(--accent-color);">来源网络</a></span></div>
             </div>
             <div style="margin-top:25px;display: flex;flex-direction: column;">
                 <button class="btn btn-primary" onclick="closeModal('about-modal')">已了解</button>
@@ -2213,6 +2219,7 @@
             currentSourceId: 'def_view',
             customSources: [],
             showParticles: true,
+            showGreeting: true,
             autoCompress: false
         };
 
@@ -2274,6 +2281,7 @@
             document.documentElement.style.setProperty('--hover-shadow', `0 8px 25px rgba(${r},${g},${b},0.15)`);
 
             const classMap = {
+                'hide-greeting': !config.showGreeting,
                 'hide-clock': !config.showClock,
                 'hide-weather': !config.showWeather,
                 'hide-quote': !config.showQuote,
@@ -2361,6 +2369,7 @@
 
         function syncVisibilitySwitches() {
             const map = {
+                'sw-show-greeting': config.showGreeting,
                 'sw-show-clock': config.showClock,
                 'sw-show-seconds': config.showSeconds,
                 'sw-show-date': config.showDate,
