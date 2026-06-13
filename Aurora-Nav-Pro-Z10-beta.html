@@ -31,7 +31,8 @@
             --particle-intensity: 0.6;
             --grid-cols-pc: 6;
             --grid-cols-mobile: 3;
-            --z-bg: -3;
+            --bg-blur: 0px;
+            --bg-brightness: 1;
             --z-particles: -2;
             --z-overlay: -1;
             --z-content: 1;
@@ -145,8 +146,10 @@
             height: 100%;
             object-fit: cover;
             opacity: 0;
-            transition: opacity 1s ease;
-            filter: brightness(.85);
+            transition: opacity 1s ease,
+                filter 0.3s ease;
+            /* 平滑过渡模糊和亮度 */
+            filter: blur(var(--bg-blur)) brightness(var(--bg-brightness));
             cursor: default;
         }
 
@@ -942,7 +945,7 @@
         .nav-item {
             display: flex;
             gap: 8px;
-            padding: 8px 12px;
+            padding: 8px 2px;
             border-radius: 12px;
             cursor: pointer;
             color: var(--text-secondary);
@@ -1513,6 +1516,122 @@
             background: var(--accent-color);
             transition: width 0.3s;
         }
+
+        /* ---------- 壁纸源卡片布局 ---------- */
+        .source-list {
+            display: grid;
+            gap: 1rem;
+            /* PC 端 3‑4 列；移动端 1‑2 列 */
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .source-card {
+            position: relative;
+            padding: 1rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, .15);
+            transition: transform .3s ease, box-shadow .3s ease, background .3s ease;
+            overflow: hidden;
+        }
+
+        .source-card:hover {
+            background: var(--card-hover);
+            border-color: var(--glass-highlight);
+            transform: translateY(-4px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        /* 文字 */
+        .source-card .src-name {
+            font-weight: 600;
+            font-size: .95rem;
+            color: var(--text-primary);
+            margin-bottom: .4rem;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        .source-card .src-name i {
+            font-size: 1rem;
+            color: var(--accent-color);
+        }
+
+        /* URL */
+        .source-card .src-url {
+            font-size: .78rem;
+            color: var(--text-secondary);
+            word-break: break-all;
+            max-height: 2.4em;
+            /* 2 行文字 */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative;
+        }
+
+        .source-card .src-url:hover::after {
+            content: attr(data-full);
+            position: absolute;
+            left: 0;
+            top: -1.6rem;
+            background: var(--bg-overlay);
+            color: #fff;
+            padding: .3rem .6rem;
+            border-radius: 6px;
+            white-space: nowrap;
+            font-size: .75rem;
+            z-index: 10;
+        }
+
+        /* 缩略图（如果是图片） */
+        .source-card .src-thumb {
+            width: 100%;
+            height: 120px;
+            margin-top: .6rem;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #111;
+            opacity: .9;
+            transition: opacity .2s;
+        }
+
+        .source-card:hover .src-thumb {
+            opacity: 1;
+        }
+
+        /* 操作按钮 */
+        .source-card .src-actions {
+            position: absolute;
+            top: .6rem;
+            right: .6rem;
+            display: flex;
+            gap: .4rem;
+            opacity: .8;
+        }
+
+        .source-card .src-actions button {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: rgba(255, 255, 255, .1);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            font-size: .9rem;
+            cursor: pointer;
+            transition: background .2s, color .2s;
+        }
+
+        .source-card .src-actions button:hover {
+            background: var(--accent-color);
+            color: #fff;
+        }
+
+        .source-card .src-actions button.copy-btn i {
+            font-size: .95rem;
+        }
     </style>
 </head>
 
@@ -1608,11 +1727,14 @@
         </div>
 
         <div class="drawer-body">
+            <!-- 设置抽屉导航 -->
             <div class="settings-nav" id="settings-nav">
                 <div class="nav-item active" data-page="appearance"><i class="ri-palette-line"></i>外观</div>
                 <div class="nav-item" data-page="layout"><i class="ri-layout-line"></i>布局</div>
                 <div class="nav-item" data-page="visibility"><i class="ri-toggle-line"></i>组件</div>
                 <div class="nav-item" data-page="advanced"><i class="ri-tools-line"></i>高级</div>
+                <!-- 默认隐藏，后面会由 JS 根据开关状态显示 -->
+                <div class="nav-item" data-page="sources" style="display:none;"><i class="ri-link-m"></i>壁纸源</div>
                 <div class="nav-item" data-page="system"><i class="ri-settings-5-line"></i>关于</div>
             </div>
 
@@ -1688,20 +1810,25 @@
                 </div>
 
                 <div class="setting-group">
+                    <div class="setting-row">
+                        <span>背景亮度</span>
+                        <input type="range" min="30" max="150" id="bg-brightness-range" value="100"
+                            oninput="updateStyleVar('bgBrightness', this.value)">
+                    </div>
                     <div class="group-label"><i class="ri-blur-off-line"></i> 模糊度调节</div>
 
                     <div class="setting-row"><span>背景模糊</span>
-                        <input type="range" min="0" max="60" id="bg-blur" value="20"
+                        <input type="range" min="0" max="20" id="bg-blur" value="0"
                             oninput="updateStyleVar('blur',this.value)">
                     </div>
 
                     <div class="setting-row"><span>搜索框模糊</span>
-                        <input type="range" min="0" max="50" id="search-blur-range" value="30"
+                        <input type="range" min="0" max="30" id="search-blur-range" value="10"
                             oninput="updateStyleVar('searchBlur',this.value)">
                     </div>
 
                     <div class="setting-row"><span>Dock 模糊</span>
-                        <input type="range" min="0" max="60" id="dock-blur-range" value="25"
+                        <input type="range" min="0" max="30" id="dock-blur-range" value="10"
                             oninput="updateStyleVar('dockBlur',this.value)">
                     </div>
                 </div>
@@ -1831,6 +1958,27 @@
                 </div>
 
                 <div class="setting-group">
+
+                    <div class="setting-group">
+                        <div class="group-label"><i class="ri-shield-line"></i> 网络资源安全</div>
+                        <div class="setting-row">
+                            <span>⚠️ 风险：使用网络资源</span>
+                            <label class="switch">
+                                <input type="checkbox" id="sw-use-network" onchange="toggleNetworkResources()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <!--   ==================== 内置网络壁纸源 开关 ====================   -->
+                        <div class="setting-group" id="built-in-source-group" style="display:none;">
+                            <div class="setting-row">
+                                <span>添加推荐的网络壁纸源</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="sw-built-in-sources" onchange="toggleBuiltInSources()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                     <div class="group-label"><i class="ri-image-add-line"></i> 壁纸源管理</div>
 
                     <div class="setting-row">
@@ -1894,6 +2042,18 @@
                             onchange="importBookmarksHTML(this)">
                         <input type="file" id="import-file" style="display:none" accept=".json,.html"
                             onchange="handleImport(this)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 可用壁纸源（名称 + URL） -->
+            <div class="settings-page" id="page-sources">
+                <div class="setting-group">
+                    <div class="group-label"><i class="ri-link-m"></i> 可用壁纸源（名称 + URL）</div>
+
+                    <div id="source-address-list" class="source-list"
+                        style="max-height:400px;overflow-y:auto;padding:8px;background:rgba(255,255,255,.02);border-radius:12px;border:1px solid var(--glass-border);">
+                        <!-- 动态渲染的 source‑card 会被插入这里 -->
                     </div>
                 </div>
             </div>
@@ -1993,8 +2153,6 @@
                 <div class="info-item"><span>核心架构</span><span>Gemini AI</span></div>
                 <div class="info-item"><span>图标库</span><span>Remix Icon</span></div>
                 <div class="info-item"><span>Faviconk库</span><span>favicon.im</span></div>
-                <div class="info-item"><span>内置图库</span><span><a href="https://imgapi.xl0408.top/index.php"
-                            style="color:var(--accent-color);">来源网络</a></span></div>
             </div>
             <div style="margin-top:25px;display: flex;flex-direction: column;">
                 <button class="btn btn-primary" onclick="closeModal('about-modal')">已了解</button>
@@ -2177,20 +2335,168 @@
 
         /* ==================== 基础数据 ==================== */
         const DEFAULT_ENGINES = [
-            { id: 'baidu', name: '百度', icon: 'ri-baidu-fill', url: 'https://www.baidu.com/s?wd=' },
+            { id: 'baidu', name: 'Baidu', icon: 'ri-baidu-fill', url: 'https://www.baidu.com/s?wd=' },
             { id: 'google', name: 'Google', icon: 'ri-google-fill', url: 'https://www.google.com/search?q=' },
             { id: 'bing', name: 'Bing', icon: 'ri-search-line', url: 'https://www.bing.com/search?q=' },
-            { id: 'bilibili', name: 'B站', icon: 'ri-bilibili-line', url: 'https://search.bilibili.com/all?keyword=' },
+            { id: 'bilibili', name: 'Bili', icon: 'ri-bilibili-line', url: 'https://search.bilibili.com/all?keyword=' },
             { id: 'github', name: 'GitHub', icon: 'ri-github-fill', url: 'https://github.com/search?q=' }
         ];
+
+        /**
+ * 切换「使用网络资源」总开关。
+ * 开启时需要二次确认，确认后自动显示「内置网络壁纸源」开关。
+ */
+        function toggleNetworkResources() {
+            const cb = document.getElementById('sw-use-network');
+            const wantEnable = cb.checked;
+            if (!wantEnable) {
+                // 关闭 → 直接隐藏
+                config.useNetworkResources = false;
+                config.showBuiltInSources = false;
+                config.builtInSourcesEnabled = false;
+                saveConfig();
+                document.getElementById('built-in-source-group').style.display = 'none';
+                updateSourcePageVisibility();          // <-- 关键
+                toastMessage('✅ 已关闭网络资源');
+                return;
+            }
+            // 打开 → 需要二次确认…
+            cb.checked = false;
+            showGenericConfirm(
+                '启用网络资源',
+                '⚠️ 风险提示：壁纸源可能会请求外部图片、脚本或追踪链接，使用前请自行确认安全性。',
+                () => {
+                    config.useNetworkResources = true;
+                    config.builtInSourcesEnabled = true;
+                    cb.checked = true;
+                    document.getElementById('built-in-source-group').style.display = 'block';
+                    saveConfig();
+                    updateSourcePageVisibility();      // <-- 关键
+                    toastMessage('✅ 已开启网络资源');
+                }
+            );
+        }
+
+        /**
+ * 切换「显示系统网络壁纸源」开关
+ * 只在已经确认打开「使用网络资源」后才可见
+ */
+        function toggleBuiltInSources() {
+            const cb = document.getElementById('sw-built-in-sources');
+            config.showBuiltInSources = cb.checked;
+            saveConfig();
+            // 当关闭时，若当前选择的源是系统源，则回退到「无」源
+            if (!cb.checked && isSystemSource(config.currentSourceId)) {
+                config.currentSourceId = DEFAULT_SOURCES[0].id;   // 默认为 “无”
+                saveConfig();
+                refreshWallpaper();
+                updateCurrentSourceLabel();
+            }
+            renderSourceList();   // 重新渲染壁纸源列表
+        }
+
+        function isSystemSource(id) {
+            return DEFAULT_SOURCES.some(s => s.id === id);
+        }
+
+        /* ---------- 渲染壁纸源卡片（仅在 “壁纸源地址” 页面使用） ---------- */
+        function renderSourceAddressPage() {
+            const container = document.getElementById('source-address-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            /* ① 取得真实可用的源（系统 + 自定义） */
+            const systemSources = (config.useNetworkResources && config.showBuiltInSources)
+                ? DEFAULT_SOURCES.filter(s => s.id !== 'def_bg')   // “无” 已经在默认里，去掉重复
+                : [];
+
+            /* ② 合并自定义源 */
+            const allSources = [...systemSources, ...config.customSources];
+
+            /* ③ 过滤掉本地 Base64 壁纸（只在此页面隐藏，不影响选择弹窗） */
+            const visibleSources = allSources.filter(src => {
+                // ① 不是本地 Base64 数据
+                // ② 不是标记为 isLocal 且 URL 为 data:image...
+                // 只要 URL 不是以 data:image 开头就保留
+                return !(src.isLocal && typeof src.url === 'string' && src.url.startsWith('data:image'));
+            });
+
+            if (!visibleSources.length) {
+                container.innerHTML = '<p style="color:var(--text-secondary);margin:0;">暂无可用源</p>';
+                return;
+            }
+
+            /* ④ 为每一个可见源生成卡片 */
+            visibleSources.forEach(src => {
+                const card = document.createElement('div');
+                card.className = 'source-card';
+
+                /* ① 名称 */
+                const title = document.createElement('div');
+                title.className = 'src-name';
+                title.innerHTML = `<i class="ri-link-m"></i> ${src.name}`;
+                card.appendChild(title);
+
+                /* ② URL（省略 + tooltip） */
+                const urlDiv = document.createElement('div');
+                urlDiv.className = 'src-url';
+                urlDiv.textContent = src.url;
+                urlDiv.dataset.full = src.url;   // 用于 tooltip
+                card.appendChild(urlDiv);
+
+                /* ③ 复制按钮 */
+                const actions = document.createElement('div');
+                actions.className = 'src-actions';
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn';
+                copyBtn.title = '复制 URL';
+                copyBtn.innerHTML = '<i class="ri-file-copy-line"></i>';
+                copyBtn.onclick = e => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(src.url).then(() => {
+                        toastMessage('✅ 已复制至剪贴板');
+                    }).catch(() => toastMessage('❌ 复制失败'));
+                };
+                actions.appendChild(copyBtn);
+                card.appendChild(actions);
+
+                /* ④ 缩略图（如果是图片） */
+                if (/\.(jpe?g|png|webp|gif|svg)(\?.*)?$/.test(src.url)) {
+                    const img = document.createElement('img');
+                    img.className = 'src-thumb';
+                    img.src = src.url + (src.url.includes('?') ? '&' : '?') + 't=' + Date.now();
+                    img.alt = src.name;
+                    img.loading = 'lazy';
+                    img.onerror = () => img.remove();   // 非图片链接去掉占位
+                    card.appendChild(img);
+                }
+
+                /* ⑤ 整卡点击：仅对本地图片或直接图片 URL 提供预览 */
+                if (src.isLocal || /\.(jpe?g|png|webp|gif|svg)(\?.*)?$/.test(src.url)) {
+                    card.style.cursor = 'pointer';
+                    card.onclick = () => previewWallpaper(src.id);
+                }
+
+                container.appendChild(card);
+            });
+        }
+
+
+        /* --------- 让 “切换壁纸源” 按钮仍然工作 ---------
+           之前的函数 `confirmSourceSelection()` 仍然有效，只是现在
+           “壁纸源地址” 页面不再直接编辑，只在 “添加/删除自定义源” 中
+           处理。故不需要额外改动。 */
+
         const DEFAULT_SOURCES = [
-            { id: 'def_view', name: '自然风景', url: 'https://imgapi.xl0408.top/index.php' },
-            /*{ id: 'def_beauty', name: '随机妹子', url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=4' },*/
-            /*{ id: 'def_anime', name: '动漫精选', url: 'https://api.paugram.com/wallpaper/' },*/
-            /*{ id: 'def_cat', name: '动态猫猫', url: 'https://edgecats.net/' }   */
+            { id: 'def_bg', name: '无', url: 'skip' },
+            { id: 'def_pics', name: '插画风格', url: 'https://imgapi.xl0408.top/index.php' },
+            { id: 'def_beauty', name: '随机妹子', url: 'https://www.onexiaolaji.cn/RandomPicture/api/?key=qq249663924&class=4' },
+            { id: 'def_anime', name: '动漫精选', url: 'https://api.paugram.com/wallpaper/' },
+            { id: 'def_cat', name: '动态猫猫', url: 'https://edgecats.net/' }
         ];
 
         let config = {
+            useNetworkResources: false,
             accentColor: '#0ea5e9',
             accentPreset: 'aurora-blue',
             particleIntensity: 60,
@@ -2215,12 +2521,14 @@
             autoHideDock: false,
             dockPos: { x: null, y: null },
             blur: 20, searchBlur: 30, dockBlur: 25,
-            currentEngine: 'baidu',
-            currentSourceId: 'def_view',
+            currentEngine: 'bing',
+            currentSourceId: 'def_bg',
             customSources: [],
             showParticles: true,
             showGreeting: true,
-            autoCompress: false
+            autoCompress: false,
+            showBuiltInSources: false,
+            builtInSourcesEnabled: false
         };
 
         let manageMode = false;
@@ -2304,11 +2612,21 @@
 
             syncVisibilitySwitches();
             updateThemePresetDisplay();
-
+            // ---- 根据是否已经确认打开「使用网络资源」来决定是否展示「内置网络壁纸源」开关 ----
+            const builtInGroup = document.getElementById('built-in-source-group');
+            if (builtInGroup) {
+                builtInGroup.style.display = (config.useNetworkResources && config.builtInSourcesEnabled) ? 'block' : 'none';
+                // 同步内部开关状态
+                const innerCb = document.getElementById('sw-built-in-sources');
+                if (innerCb) innerCb.checked = !!config.showBuiltInSources;
+            }
             const display = document.getElementById('column-count');
             if (display) {
                 display.textContent = window.innerWidth <= 768 ? config.layout.colsMobile : config.layout.colsPc;
             }
+
+            // ------------------- 同步「壁纸源地址」页面的显隐 -------------------
+            updateSourcePageVisibility();
         }
 
         function updateThemePresetDisplay() {
@@ -2381,7 +2699,8 @@
                 'sw-autohide-dock': config.autoHideDock,
                 'sw-particles': config.showParticles,
                 'sw-auto-compress': config.autoCompress,
-                'sw-show-bookmarks': config.showBookmarks
+                'sw-show-bookmarks': config.showBookmarks,
+                'sw-use-network': config.useNetworkResources
             };
             Object.entries(map).forEach(([id, checked]) => {
                 const el = document.getElementById(id);
@@ -2399,9 +2718,22 @@
 
         function updateStyleVar(key, val) {
             config[key] = Number(val);
-            if (key === 'blur') document.documentElement.style.setProperty('--blur-amount', val + 'px');
-            if (key === 'searchBlur') document.documentElement.style.setProperty('--search-blur', val + 'px');
-            if (key === 'dockBlur') document.documentElement.style.setProperty('--dock-blur', val + 'px');
+
+            if (key === 'blur') {                     // 背景模糊（对应 UI 中 “背景模糊” 滑块）
+                document.documentElement.style.setProperty('--bg-blur', val + 'px');
+            }
+            if (key === 'bgBrightness') {             // 背景亮度（可自行在 UI 中添加滑块）
+                // val 为 0~100，转成 0~1 的比例
+                const ratio = Math.max(0, Math.min(100, val)) / 100;
+                document.documentElement.style.setProperty('--bg-brightness', ratio);
+            }
+            // 其它已有的变量处理保持不变
+            if (key === 'searchBlur') {
+                document.documentElement.style.setProperty('--search-blur', val + 'px');
+            }
+            if (key === 'dockBlur') {
+                document.documentElement.style.setProperty('--dock-blur', val + 'px');
+            }
             if (key === 'gridColsPc') {
                 document.documentElement.style.setProperty('--grid-cols-pc', val);
                 config.layout.colsPc = Number(val);
@@ -2482,12 +2814,21 @@
                 const target = item.dataset.page;
                 nav.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i === item));
                 document.querySelectorAll('.settings-page')
-                    .forEach(p => p.classList.toggle('active', p.id === 'page-' + target));
+                    .forEach(p => {
+                        const shouldShow =
+                            !p.hidden &&
+                            p.id === 'page-' + target;
+
+                        p.classList.toggle('active', shouldShow);
+                    });
                 if (target === 'layout') {
                     setupLayoutControls();
                 }
                 if (target === 'advanced') {
                     updateStorageDisplay();
+                }
+                if (target === 'sources') {
+                    renderSourceAddressPage();   // 切到「壁纸源地址」页时实时渲染
                 }
             });
         }
@@ -2955,26 +3296,43 @@
         function renderSourceList() {
             const listContainer = document.getElementById('source-list');
             listContainer.innerHTML = '';
-            const allSources = [...DEFAULT_SOURCES, ...config.customSources];
-            allSources.forEach(src => {
+            // ---------- ① 计算真实可用的源 ----------
+            const systemSources = (config.useNetworkResources && config.showBuiltInSources)
+                ? DEFAULT_SOURCES.filter(s => s.id !== 'def_bg')   // “无” 已经在默认列表里，去掉重复
+                : [];                                             // 不满足条件 → 不展示
+            const all = [...systemSources, ...config.customSources];
+            // 为了兼容 “当前选中的源可能是系统源”，把当前源也加入 all（即使上面过滤掉了）：
+            const curSrc = [...DEFAULT_SOURCES, ...config.customSources]
+                .find(s => s.id === config.currentSourceId);
+            if (curSrc && !all.some(s => s.id === curSrc.id)) all.unshift(curSrc);
+            // ---------- ② 渲染 ----------
+            all.forEach(src => {
                 const label = document.createElement('label');
                 label.className = 'source-item';
                 label.innerHTML = `
-                    <span>
-                        <input type="radio" name="source-radio" value="${src.id}" ${src.id === config.currentSourceId ? 'checked' : ''}>
-                        ${src.name}
-                    </span>`;
+            <span>
+                <input type="radio" name="source-radio" value="${src.id}" ${src.id === config.currentSourceId ? 'checked' : ''}>
+                ${src.name}
+            </span>`;
+                // 删除按钮只针对自定义或本地源
                 if (src.id.startsWith('cust_') || src.isLocal) {
                     const del = document.createElement('i');
                     del.className = 'ri-delete-bin-line delete-icon';
                     del.title = '删除此源';
                     del.onclick = (e) => {
                         e.stopPropagation();
-                        showGenericConfirm('删除壁纸源', `确定删除 "${src.name}" 吗？`, () => {
-                            config.customSources = config.customSources.filter(s => s.id !== src.id);
-                            if (config.currentSourceId === src.id) config.currentSourceId = DEFAULT_SOURCES[0].id;
-                            saveConfig(); renderSourceList(); updateCurrentSourceLabel(); refreshWallpaper();
-                        });
+                        showGenericConfirm('删除壁纸源',
+                            `确定删除 “${src.name}” 吗？`,
+                            () => {
+                                config.customSources = config.customSources.filter(s => s.id !== src.id);
+                                if (config.currentSourceId === src.id) {
+                                    config.currentSourceId = DEFAULT_SOURCES[0].id;
+                                }
+                                saveConfig();
+                                renderSourceList();
+                                updateCurrentSourceLabel();
+                                refreshWallpaper();
+                            });
                     };
                     label.appendChild(del);
                 }
@@ -2997,7 +3355,18 @@
             const radios = document.getElementsByName('source-radio');
             let chosen = null;
             radios.forEach(r => { if (r.checked) chosen = r.value; });
-            if (chosen && chosen !== config.currentSourceId) {
+            if (!chosen) return;
+            const all = [...DEFAULT_SOURCES, ...config.customSources];
+            const src = all.find(s => s.id === chosen);
+            // —— 关键校验开始 ——
+            if (src && !src.isLocal && !config.useNetworkResources) {
+                // 目标是网络资源且总开关未打开
+                toastMessage('⚠️ 请先开启 “使用网络资源” 总开关后再切换此壁纸源');
+                // 让弹窗保持打开状态，用户自行打开总开关后再点“确定”
+                return;
+            }
+            // —— 关键校验结束 ——
+            if (chosen !== config.currentSourceId) {
                 config.currentSourceId = chosen;
                 saveConfig();
                 refreshWallpaper();
@@ -3005,7 +3374,6 @@
             }
             closeModal('source-select-modal');
         }
-
         function updateCurrentSourceLabel() {
             if (!document.getElementById('current-source-name')) return;
             const all = [...DEFAULT_SOURCES, ...config.customSources];
@@ -3169,6 +3537,12 @@
             const name = document.getElementById('new-src-name').value.trim();
             const url = document.getElementById('new-src-url').value.trim();
             if (!name || !url) return;
+            const isNetwork = !url.startsWith('data:image') && !url.startsWith('local');
+            // 若是网络来源且总开关未打开，则弹出提示并阻止添加
+            if (isNetwork && !config.useNetworkResources) {
+                toastMessage('⚠️ 请先开启 “使用网络资源” 总开关后再添加网络壁纸源');
+                return;
+            }
             const src = { id: 'cust_' + Date.now(), name, url };
             config.customSources.push(src);
             config.currentSourceId = src.id;
@@ -3501,7 +3875,6 @@
         async function init() {
             await DB.init(); // Initialize DB first
             await loadConfig(); // Wait for data load
-
             applyTheme();
             syncVisibilitySwitches();
             renderEngines();
@@ -3551,6 +3924,32 @@
             localStorage.removeItem('aurora_daily_focus_done');
             localStorage.removeItem('aurora_v6_config');
             location.reload();
+        }
+        /**
+         * 根据 config.useNetworkResources 的当前值，控制
+         *   1. 左侧导航项「壁纸源地址」 (data-page="sources")
+         *   2. 内容区页面 #page-sources
+         *   3. 若抽屉已经打开，立即刷新抽屉内部的可见性
+         */
+        function updateSourcePageVisibility() {
+            const navItem = document.querySelector('.nav-item[data-page="sources"]');
+            const page = document.getElementById('page-sources');
+
+            if (!navItem || !page) return;
+
+            const visible = !!config.useNetworkResources;
+
+            // 控制导航是否显示
+            navItem.style.display = visible ? 'flex' : 'none';
+
+            // 不要直接改 display
+            // 改为交给 active 机制控制
+            if (!visible) {
+                page.classList.remove('active');
+            }
+
+            // 用 hidden 属性隐藏页面
+            page.hidden = !visible;
         }
 
         init();
